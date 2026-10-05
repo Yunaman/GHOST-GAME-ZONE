@@ -1,45 +1,36 @@
-# Ghost Game Zone
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Mobile-first FIFA session tracking for a 3-TV gaming center (V1).
+## Getting Started
 
-## Stack
-
-- Next.js 15 (App Router) + TypeScript + Tailwind CSS v4
-- **Supabase** (production) or **local SQLite** in `/data` when Supabase env vars are missing
-
-## Run locally
+First, run the development server:
 
 ```bash
-npm install
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) on your phone (same Wi‑Fi) or use dev tools mobile view.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Supabase setup
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-1. Create a Supabase project.
-2. Run the SQL in `supabase/migrations/20260404120000_init.sql` in the SQL editor.
-3. Copy `.env.example` to `.env.local` and set:
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (recommended for server actions)
+## Learn More
 
-4. Restart `npm run dev`. The header badge switches from **Local DB** to **Supabase**.
+To learn more about Next.js, take a look at the following resources:
 
-## Floor workflow
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. **Start session** on an available TV.
-2. Tap **+ Match** for each finished game (15 ETB by default).
-3. **Extra time +5** updates the *current* match to 20 ETB (once per match).
-4. **Undo last** removes the latest match if needed.
-5. **Finish session** → payment method → TV becomes available; session appears in **History** and **Today**.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Settings
+## Deploy on Vercel
 
-Configure normal FIFA price, extra-time add-on, and console names under **Settings** (defaults: 15 / 5 / TV 1–3).
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Auth (planned)
-
-`/login` is a placeholder for Supabase Auth (owner/manager). The floor dashboard runs without login in V1.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
