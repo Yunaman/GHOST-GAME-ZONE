@@ -86,17 +86,17 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 font-mono">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* FIFA Pricing Section */}
       <div className="ghost-glass-card p-5 space-y-4">
-        <h2 className="font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
+        <h2 className="font-gaming font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
           <DollarSign className="w-5 h-5 text-emerald-400" />
-          <span>FIFA Pricing & Currency</span>
+          <span>FIFA PRICING & CURRENCY</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
-            <label className="block font-bold text-gray-300 uppercase mb-1">
+            <label className="block font-handwriting text-gray-300 text-lg mb-1">
               Normal Match Price ({currency})
             </label>
             <input
@@ -104,12 +104,12 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               step="1"
               value={fifaNormalPrice}
               onChange={(e) => setFifaNormalPrice(Number(e.target.value))}
-              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-gaming font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-gray-300 uppercase mb-1">
+            <label className="block font-handwriting text-gray-300 text-lg mb-1">
               Extra Time Add-on ({currency})
             </label>
             <input
@@ -117,19 +117,19 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               step="1"
               value={fifaExtraTimePrice}
               onChange={(e) => setFifaExtraTimePrice(Number(e.target.value))}
-              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-gaming font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-gray-300 uppercase mb-1">
+            <label className="block font-handwriting text-gray-300 text-lg mb-1">
               Currency Code
             </label>
             <input
               type="text"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-gaming font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
         </div>
@@ -138,23 +138,23 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
       {/* TV Console Station Management */}
       <div className="ghost-glass-card p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-          <h2 className="font-bold text-base text-white uppercase flex items-center gap-2">
+          <h2 className="font-gaming font-bold text-base text-white uppercase flex items-center gap-2">
             <Tv className="w-5 h-5 text-blue-400" />
-            <span>Gaming TV Stations ({consoles.length})</span>
+            <span>GAMING TV STATIONS ({consoles.length})</span>
           </h2>
 
           <button
             type="button"
             onClick={handleAddTv}
             disabled={isAddingTv}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-md transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-gaming font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-md transition-all disabled:opacity-50"
           >
             {isAddingTv ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>+ ADD TV</span>
+                <span>+ ADD TV 👻</span>
               </>
             )}
           </button>
@@ -169,19 +169,19 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
                 className="p-3 bg-gray-950/80 border border-gray-800 rounded-xl flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3 flex-1">
-                  <span className="text-gray-500 text-[11px] font-bold uppercase w-12">
+                  <span className="text-gray-500 text-[11px] font-mono font-bold uppercase w-12">
                     {c.id}
                   </span>
                   <input
                     type="text"
                     value={consoleNames[c.id] || ''}
                     onChange={(e) => setConsoleNames({ ...consoleNames, [c.id]: e.target.value })}
-                    className="px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg text-white font-bold text-sm outline-none focus:border-blue-500 max-w-xs"
+                    className="px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg text-white font-gaming font-bold text-sm outline-none focus:border-blue-500 max-w-xs"
                   />
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                  <span className={`text-[10px] font-gaming uppercase font-bold px-2 py-0.5 rounded ${
                     isActive ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
                   }`}>
                     {isActive ? 'ACTIVE' : 'INACTIVE'}
@@ -207,7 +207,7 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
       </div>
 
       {msg && (
-        <div className={`p-3 rounded-xl font-mono text-xs ${
+        <div className={`p-3 rounded-xl font-sans text-xs ${
           msg.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-rose-950/80 text-rose-300 border border-rose-800'
         }`}>
           {msg.text}
@@ -217,14 +217,14 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full sm:w-auto px-6 py-3.5 ghost-btn-primary font-mono font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+        className="w-full sm:w-auto px-6 py-3.5 ghost-btn-primary font-gaming font-bold text-sm rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
       >
         {isSubmitting ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <>
-            <Save className="w-5 h-5" />
-            <span>SAVE SYSTEM CONFIGURATION</span>
+            <Save className="w-5 h-5 text-black" />
+            <span className="text-black">SAVE CONFIGURATION 👻</span>
           </>
         )}
       </button>

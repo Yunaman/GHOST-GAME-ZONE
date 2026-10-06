@@ -2,9 +2,9 @@
 
 @layer base {
   :root {
-    --bg-dark: #090a0f;
-    --card-glass: rgba(20, 24, 33, 0.75);
-    --card-border: rgba(255, 255, 255, 0.1);
+    --bg-dark: #06070a;
+    --card-glass: rgba(18, 22, 32, 0.85);
+    --card-border: rgba(255, 255, 255, 0.08);
     --text-primary: #f3f4f6;
     --accent-ghost: #10b981;
     --accent-glow: rgba(16, 185, 129, 0.25);
@@ -13,60 +13,119 @@
   body {
     background-color: var(--bg-dark);
     color: var(--text-primary);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     touch-action: manipulation;
     overflow-x: hidden;
   }
 }
 
+/* Font Classes */
+.font-gaming {
+  font-family: var(--font-gaming), monospace;
+  letter-spacing: 0.05em;
+}
+
+.font-handwriting {
+  font-family: var(--font-handwriting), cursive;
+}
+
+.font-sans {
+  font-family: var(--font-sans), sans-serif;
+}
+
+/* 3D TV Station Card Presets */
+.ghost-card-3d {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ghost-card-inner {
+  background: rgba(15, 20, 30, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.6),
+    0 0 20px -5px rgba(16, 185, 129, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.ghost-card-3d:hover .ghost-card-inner {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-1deg);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow:
+    0 20px 40px -15px rgba(0, 0, 0, 0.8),
+    0 0 30px 0 rgba(16, 185, 129, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Tactile Paper Style Action Button (+ MATCH) */
+.paper-btn-match {
+  background: #fdfbf7;
+  color: #111827;
+  font-weight: 800;
+  border-radius: 14px;
+  border: 2px solid #e5e7eb;
+  box-shadow:
+    0 6px 0 0 #d1d5db,
+    0 12px 20px -4px rgba(0, 0, 0, 0.4);
+  position: relative;
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.paper-btn-match:hover {
+  background: #ffffff;
+  box-shadow:
+    0 8px 0 0 #d1d5db,
+    0 16px 24px -4px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+}
+
+.paper-btn-match:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 0 #9ca3af,
+    0 4px 10px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Tactile Extra Time Paper Button */
+.paper-btn-extra {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  box-shadow: 0 3px 0 0 #fcd34d;
+  transition: all 0.1s ease;
+}
+
+.paper-btn-extra:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 #fcd34d;
+}
+
 /* Glassmorphism Dark Card */
 .ghost-glass-card {
-  background: rgba(17, 21, 30, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 20, 30, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   border-radius: 16px;
   position: relative;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.ghost-glass-card:hover {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), 0 0 20px 0 rgba(16, 185, 129, 0.15);
-}
-
-/* Tactile Button Press Animation */
-.ghost-btn-primary {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
-  transition: all 0.15s ease-out;
-}
-
-.ghost-btn-primary:active {
-  transform: scale(0.97);
-  box-shadow: 0 2px 6px 0 rgba(16, 185, 129, 0.3);
-}
-
-.ghost-btn-danger {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.35);
-}
-
-.ghost-btn-danger:active {
-  transform: scale(0.97);
-}
-
-/* Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #090a0f;
+  background: #06070a;
 }
 ::-webkit-scrollbar-thumb {
   background: #1f2937;
