@@ -8,8 +8,11 @@ export async function getConsolesWithActiveSessionsAction() {
     const consoles = await repository.getConsoles();
     const settings = await repository.getSettings();
 
+    // Filter active consoles for the dashboard
+    const activeConsoles = consoles.filter((c) => c.is_active !== false);
+
     const consolesWithSessions = await Promise.all(
-      consoles.map(async (c) => {
+      activeConsoles.map(async (c) => {
         const active_session = await repository.getActiveSessionByConsoleId(c.id);
         return {
           console: c,
@@ -18,9 +21,31 @@ export async function getConsolesWithActiveSessionsAction() {
       })
     );
 
-    return { success: true, data: consolesWithSessions, settings };
+    return { success: true, data: consolesWithSessions, settings, allConsoles: consoles };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Failed to fetch console states' };
+  }
+}
+
+export async function addConsoleAction() {
+  try {
+    const newConsole = await repository.addConsole();
+    revalidatePath('/');
+    revalidatePath('/settings');
+    return { success: true, data: newConsole };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Failed to add new TV station' };
+  }
+}
+
+export async function toggleConsoleActiveAction(consoleId: string, isActive: boolean) {
+  try {
+    const updated = await repository.toggleConsoleActive(consoleId, isActive);
+    revalidatePath('/');
+    revalidatePath('/settings');
+    return { success: true, data: updated };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Failed to toggle TV status' };
   }
 }
 

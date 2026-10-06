@@ -16,7 +16,9 @@ export interface Repository {
   getSettings(): Promise<Settings>;
   updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings>;
   getConsoles(): Promise<Console[]>;
+  addConsole(): Promise<Console>;
   updateConsoleName(id: string, name: string): Promise<Console>;
+  toggleConsoleActive(id: string, isActive: boolean): Promise<Console>;
   getActiveSessionByConsoleId(consoleId: string): Promise<Session | null>;
   getSessionById(sessionId: string): Promise<Session | null>;
   startSession(consoleId: string, createdBy?: string): Promise<Session>;
@@ -48,6 +50,19 @@ function syncFsSessionTotal(sessionId: string): number {
   return total;
 }
 
+// Helper to determine next TV number safely
+function getNextTvNumber(consoles: Console[]): number {
+  let maxNum = 0;
+  for (const c of consoles) {
+    const match = c.name.match(/TV\s*(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  return maxNum + 1;
+}
+
 // --- Local Pure JS FileSystem Persistence Repository ---
 const fsRepository: Repository = {
   async getSettings(): Promise<Settings> {
@@ -70,11 +85,41 @@ const fsRepository: Repository = {
     return [...db.consoles].sort((a, b) => a.display_order - b.display_order);
   },
 
+  async addConsole(): Promise<Console> {
+    const db = loadDb();
+    const nextNum = getNextTvNumber(db.consoles);
+    const newName = `TV ${nextNum}`;
+    const newId = `c-${nextNum}`;
+    const now = new Date().toISOString();
+
+    const newConsole: Console = {
+      id: newId,
+      name: newName,
+      status: 'AVAILABLE',
+      display_order: db.consoles.length + 1,
+      is_active: true,
+      created_at: now,
+    };
+
+    db.consoles.push(newConsole);
+    saveDb(db);
+    return newConsole;
+  },
+
   async updateConsoleName(id: string, name: string): Promise<Console> {
     const db = loadDb();
     const consoleObj = db.consoles.find((c) => c.id === id);
     if (!consoleObj) throw new Error('Console TV not found');
     consoleObj.name = name;
+    saveDb(db);
+    return consoleObj;
+  },
+
+  async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+    const db = loadDb();
+    const consoleObj = db.consoles.find((c) => c.id === id);
+    if (!consoleObj) throw new Error('Console TV not found');
+    consoleObj.is_active = isActive;
     saveDb(db);
     return consoleObj;
   },
@@ -459,9 +504,33 @@ const supabaseRepository: Repository = {
     return data as Console[];
   },
 
+  async addConsole(): Promise<Console> {
+    if (!supabase) return fsRepository.addConsole();
+    const consoles = await this.getConsoles();
+    const nextNum = getNextTvNumber(consoles);
+    const name = `TV ${nextNum}`;
+
+    const { data, error } = await supabase.from('consoles').insert({
+      name,
+      status: 'AVAILABLE',
+      display_order: consoles.length + 1,
+      is_active: true
+    }).select().single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to add TV station');
+    return data as Console;
+  },
+
   async updateConsoleName(id: string, name: string): Promise<Console> {
     if (!supabase) return fsRepository.updateConsoleName(id, name);
     const { data, error } = await supabase.from('consoles').update({ name }).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return data as Console;
+  },
+
+  async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+    if (!supabase) return fsRepository.toggleConsoleActive(id, isActive);
+    const { data, error } = await supabase.from('consoles').update({ is_active: isActive }).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     return data as Console;
   },
@@ -830,5 +899,4 @@ const supabaseRepository: Repository = {
   },
 };
 
-// Select repository dynamically based on environment
 export const repository: Repository = isSupabaseConfigured ? supabaseRepository : fsRepository;
