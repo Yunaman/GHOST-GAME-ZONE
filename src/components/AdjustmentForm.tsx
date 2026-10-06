@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createAdjustmentAction } from '@/app/actions';
-import { Plus, Minus, Check, Loader2, ShieldAlert } from 'lucide-react';
+import { Check, Loader2, ShieldAlert } from 'lucide-react';
 
 interface AdjustmentFormProps {
   sessionId: string;
@@ -46,33 +46,31 @@ export function AdjustmentForm({ sessionId, currency }: AdjustmentFormProps) {
   }
 
   return (
-    <div className="bg-[#f5f1e8] p-4 rounded-xl border border-[#e0dad0] space-y-3">
-      <div className="flex items-center gap-2 text-gray-800 font-mono font-bold text-sm">
-        <ShieldAlert className="w-4 h-4 text-amber-600" />
+    <div className="bg-[#0b0e14] p-4 rounded-xl border border-amber-900/40 space-y-3">
+      <div className="flex items-center gap-2 text-amber-400 font-mono font-bold text-sm">
+        <ShieldAlert className="w-4 h-4 text-amber-400" />
         <span>AUDIT CORRECTION / ADJUSTMENT</span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-gray-600 uppercase font-bold mb-1">
+            <label className="block text-gray-400 uppercase font-bold mb-1">
               Adjustment Amount ({currency})
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                step="1"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                placeholder="e.g. -15 or 15"
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-sm outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-            <span className="text-[10px] text-gray-500">Use negative number to reduce total</span>
+            <input
+              type="number"
+              step="1"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              placeholder="e.g. -15 or 15"
+              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-lg text-white font-bold text-sm outline-none focus:border-amber-500"
+            />
+            <span className="text-[10px] text-gray-500 mt-0.5 block">Use negative number to reduce total</span>
           </div>
 
           <div>
-            <label className="block text-gray-600 uppercase font-bold mb-1">
+            <label className="block text-gray-400 uppercase font-bold mb-1">
               Audit Reason / Note
             </label>
             <input
@@ -80,14 +78,14 @@ export function AdjustmentForm({ sessionId, currency }: AdjustmentFormProps) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g., Customer overcharged by 1 match"
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-lg text-white text-sm outline-none focus:border-amber-500"
             />
           </div>
         </div>
 
         {message && (
           <div className={`p-2.5 rounded-lg text-xs ${
-            message.type === 'success' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+            message.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-rose-950/80 text-rose-300 border border-rose-800'
           }`}>
             {message.text}
           </div>
@@ -96,7 +94,7 @@ export function AdjustmentForm({ sessionId, currency }: AdjustmentFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-lg flex items-center justify-center gap-2 tactile-button transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           <span>Record Audit Adjustment</span>

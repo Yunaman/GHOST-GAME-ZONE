@@ -19,7 +19,7 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
   const [error, setError] = useState<string | null>(null);
 
   const matchCount = session.matches?.length || 0;
-  const extraTimeCount = session.matches?.filter(m => m.extra_time).length || 0;
+  const extraTimeCount = session.matches?.filter((m) => m.extra_time).length || 0;
 
   async function handleFinish() {
     setIsSubmitting(true);
@@ -39,45 +39,45 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-[#faf7f2] text-gray-900 rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden border border-amber-200/80">
-        {/* Paper Header */}
-        <div className="bg-[#f0eae1] px-5 py-4 border-b border-[#e2ddd3] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-[#121620] text-gray-100 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
+        {/* Header */}
+        <div className="bg-[#181d2a] px-5 py-4 border-b border-gray-800 flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
               FINISH & COLLECT
             </span>
-            <h2 className="text-xl font-bold font-mono text-gray-900 mt-1">
+            <h2 className="text-xl font-bold font-mono text-white mt-1">
               {session.console_name || 'TV'} SESSION SUMMARY
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-200 text-gray-500 transition-colors"
+            className="p-1 rounded-lg hover:bg-gray-800 text-gray-400 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Receipt Breakdown */}
-          <div className="paper-receipt p-4 rounded-lg space-y-2 text-sm shadow-inner">
-            <div className="flex justify-between text-gray-600 font-mono text-xs">
+          {/* Summary Box */}
+          <div className="bg-[#0b0e14] p-4 rounded-xl border border-gray-800 space-y-2 text-sm">
+            <div className="flex justify-between text-gray-400 font-mono text-xs">
               <span>Game Type:</span>
-              <span className="font-bold text-gray-800">FIFA (MATCH BASED)</span>
+              <span className="font-bold text-white">FIFA (MATCH BASED)</span>
             </div>
-            <div className="flex justify-between font-mono">
+            <div className="flex justify-between font-mono text-gray-300">
               <span>Total Completed Matches:</span>
-              <span className="font-bold">{matchCount}</span>
+              <span className="font-bold text-white">{matchCount}</span>
             </div>
-            <div className="flex justify-between font-mono">
+            <div className="flex justify-between font-mono text-gray-300">
               <span>Extra Time Matches (+5):</span>
-              <span className="font-bold">{extraTimeCount}</span>
+              <span className="font-bold text-amber-400">{extraTimeCount}</span>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 pt-3 mt-3 flex justify-between items-baseline font-mono">
-              <span className="font-bold text-base">TOTAL DUE:</span>
-              <span className="text-2xl font-black text-emerald-700">
+            <div className="border-t border-gray-800 pt-3 mt-3 flex justify-between items-baseline font-mono">
+              <span className="font-bold text-base text-gray-300">TOTAL DUE:</span>
+              <span className="text-2xl font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">
                 {formatCurrency(session.total_amount, currency)}
               </span>
             </div>
@@ -85,17 +85,17 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
 
           {/* Payment Method Selector */}
           <div>
-            <label className="block text-xs font-mono uppercase font-bold text-gray-600 mb-2">
+            <label className="block text-xs font-mono uppercase font-bold text-gray-400 mb-2">
               Select Payment Method
             </label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setMethod('CASH')}
-                className={`py-3 px-2 rounded-lg border flex flex-col items-center gap-1 font-mono text-xs font-bold transition-all ${
+                className={`py-3 px-2 rounded-xl border flex flex-col items-center gap-1 font-mono text-xs font-bold cursor-pointer transition-all ${
                   method === 'CASH'
-                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-md scale-[1.02]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg scale-[1.02]'
+                    : 'bg-gray-900/80 text-gray-400 border-gray-800 hover:bg-gray-800'
                 }`}
               >
                 <Banknote className="w-5 h-5" />
@@ -105,10 +105,10 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
               <button
                 type="button"
                 onClick={() => setMethod('TELEBIRR')}
-                className={`py-3 px-2 rounded-lg border flex flex-col items-center gap-1 font-mono text-xs font-bold transition-all ${
+                className={`py-3 px-2 rounded-xl border flex flex-col items-center gap-1 font-mono text-xs font-bold cursor-pointer transition-all ${
                   method === 'TELEBIRR'
-                    ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg scale-[1.02]'
+                    : 'bg-gray-900/80 text-gray-400 border-gray-800 hover:bg-gray-800'
                 }`}
               >
                 <CreditCard className="w-5 h-5" />
@@ -118,10 +118,10 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
               <button
                 type="button"
                 onClick={() => setMethod('CBE')}
-                className={`py-3 px-2 rounded-lg border flex flex-col items-center gap-1 font-mono text-xs font-bold transition-all ${
+                className={`py-3 px-2 rounded-xl border flex flex-col items-center gap-1 font-mono text-xs font-bold cursor-pointer transition-all ${
                   method === 'CBE'
-                    ? 'bg-purple-600 text-white border-purple-700 shadow-md scale-[1.02]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    ? 'bg-purple-600 text-white border-purple-500 shadow-lg scale-[1.02]'
+                    : 'bg-gray-900/80 text-gray-400 border-gray-800 hover:bg-gray-800'
                 }`}
               >
                 <Building2 className="w-5 h-5" />
@@ -133,7 +133,7 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
           {/* Optional Reference Field for Digital Payment */}
           {method !== 'CASH' && (
             <div className="animate-in fade-in duration-150">
-              <label className="block text-xs font-mono uppercase font-bold text-gray-600 mb-1">
+              <label className="block text-xs font-mono uppercase font-bold text-gray-400 mb-1">
                 Transaction / Reference # (Optional)
               </label>
               <input
@@ -141,13 +141,13 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 placeholder="e.g., TXN-984214"
-                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-mono text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-mono text-sm focus:border-emerald-500 outline-none"
               />
             </div>
           )}
 
           {error && (
-            <div className="p-3 bg-rose-100 border border-rose-300 text-rose-800 text-xs font-mono rounded-lg">
+            <div className="p-3 bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-mono rounded-xl">
               {error}
             </div>
           )}
@@ -157,7 +157,7 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
             type="button"
             onClick={handleFinish}
             disabled={isSubmitting}
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-mono font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 tactile-button transition-all disabled:opacity-50"
+            className="w-full py-4 ghost-btn-primary font-mono font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

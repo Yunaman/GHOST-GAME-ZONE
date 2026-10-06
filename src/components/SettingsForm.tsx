@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Settings, Console } from '@/types';
 import { updateSettingsAction, updateConsoleNameAction } from '@/app/actions';
-import { Save, Check, Loader2, Tv, DollarSign } from 'lucide-react';
+import { Save, Loader2, Tv, DollarSign } from 'lucide-react';
 
 interface SettingsFormProps {
   settings: Settings;
@@ -28,13 +28,11 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
     setMsg(null);
 
     try {
-      // Update settings
       const settingsRes = await updateSettingsAction(fifaNormalPrice, fifaExtraTimePrice, currency.trim());
       if (!settingsRes.success) {
         throw new Error(settingsRes.error || 'Failed to update pricing settings');
       }
 
-      // Update console names
       for (const consoleItem of consoles) {
         const newName = consoleNames[consoleItem.id];
         if (newName && newName !== consoleItem.name) {
@@ -53,15 +51,15 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* FIFA Pricing Section */}
-      <div className="paper-card p-5 space-y-4">
-        <h2 className="font-mono font-bold text-base text-gray-900 uppercase flex items-center gap-2 border-b border-gray-200 pb-3">
-          <DollarSign className="w-5 h-5 text-emerald-600" />
+      <div className="ghost-glass-card p-5 space-y-4">
+        <h2 className="font-mono font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
+          <DollarSign className="w-5 h-5 text-emerald-400" />
           <span>FIFA Pricing & Currency Configuration</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
           <div>
-            <label className="block font-bold text-gray-700 uppercase mb-1">
+            <label className="block font-bold text-gray-300 uppercase mb-1">
               Normal Match Price ({currency})
             </label>
             <input
@@ -69,12 +67,12 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               step="1"
               value={fifaNormalPrice}
               onChange={(e) => setFifaNormalPrice(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-gray-700 uppercase mb-1">
+            <label className="block font-bold text-gray-300 uppercase mb-1">
               Extra Time Add-on Price ({currency})
             </label>
             <input
@@ -82,40 +80,40 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               step="1"
               value={fifaExtraTimePrice}
               onChange={(e) => setFifaExtraTimePrice(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block font-bold text-gray-700 uppercase mb-1">
+            <label className="block font-bold text-gray-300 uppercase mb-1">
               Currency Code
             </label>
             <input
               type="text"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
         </div>
       </div>
 
       {/* TV Console Naming */}
-      <div className="paper-card p-5 space-y-4">
-        <h2 className="font-mono font-bold text-base text-gray-900 uppercase flex items-center gap-2 border-b border-gray-200 pb-3">
-          <Tv className="w-5 h-5 text-blue-600" />
+      <div className="ghost-glass-card p-5 space-y-4">
+        <h2 className="font-mono font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
+          <Tv className="w-5 h-5 text-blue-400" />
           <span>Gaming TV Console Station Names</span>
         </h2>
 
         <div className="space-y-3 font-mono text-xs">
           {consoles.map((c) => (
             <div key={c.id} className="flex items-center gap-3">
-              <span className="w-20 font-bold text-gray-600">Station ID: {c.id}</span>
+              <span className="w-24 font-bold text-gray-400">Station ID: {c.id}</span>
               <input
                 type="text"
                 value={consoleNames[c.id] || ''}
                 onChange={(e) => setConsoleNames({ ...consoleNames, [c.id]: e.target.value })}
-                className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-blue-500"
               />
             </div>
           ))}
@@ -124,7 +122,7 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
 
       {msg && (
         <div className={`p-3 rounded-xl font-mono text-xs ${
-          msg.type === 'success' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+          msg.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-rose-950/80 text-rose-300 border border-rose-800'
         }`}>
           {msg.text}
         </div>
@@ -133,7 +131,7 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full sm:w-auto px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-mono font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 tactile-button transition-all disabled:opacity-50"
+        className="w-full sm:w-auto px-6 py-3.5 ghost-btn-primary font-mono font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
       >
         {isSubmitting ? (
           <Loader2 className="w-5 h-5 animate-spin" />
