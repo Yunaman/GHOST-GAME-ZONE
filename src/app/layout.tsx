@@ -4,6 +4,9 @@ import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { GhostCanvas } from '@/components/GhostCanvas';
 import { IntroSplash } from '@/components/IntroSplash';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { MadeByYuna } from '@/components/MadeByYuna';
+import { GhostPaymentCard } from '@/components/GhostPaymentCard';
 
 const gamingFont = Orbitron({
   subsets: ['latin'],
@@ -37,21 +40,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${gamingFont.variable} ${handwritingFont.variable} ${sansFont.variable}`}>
-      <body className="min-h-screen bg-[#06070a] text-gray-100 font-sans antialiased selection:bg-emerald-500 selection:text-black relative overflow-x-hidden">
-        {/* Intro Splash Experience */}
-        <IntroSplash />
+    <html lang="en" className={`dark ${gamingFont.variable} ${handwritingFont.variable} ${sansFont.variable}`} data-theme="theme-purple">
+      <body className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-purple-600 selection:text-white relative overflow-x-hidden">
+        <ThemeProvider>
+          {/* Intro Splash Experience */}
+          <IntroSplash />
 
-        {/* 3D Atmospheric Background Ghost */}
-        <GhostCanvas />
+          {/* 3D Atmospheric Background Ghost (pointer-events: none) */}
+          <GhostCanvas />
 
-        {/* Foreground Content */}
-        <div className="relative z-10 flex flex-col min-h-screen">
-          <Navbar />
-          <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-24">
-            {children}
-          </main>
-        </div>
+          {/* Foreground Content */}
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-16">
+              {children}
+            </main>
+
+            {/* Consistent Compact Footer */}
+            <footer className="w-full border-t border-purple-900/30 bg-black/60 backdrop-blur-md py-6 px-4 text-center space-y-4">
+              <div className="max-w-xs mx-auto">
+                <GhostPaymentCard size="sm" />
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-zinc-400">
+                <span className="font-gaming font-bold tracking-widest text-purple-300">
+                  👻 GHOST GAME ZONE V1
+                </span>
+                <span className="hidden sm:inline text-zinc-600">•</span>
+                <MadeByYuna size="sm" />
+              </div>
+            </footer>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
