@@ -112,7 +112,7 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
 
   return (
     <>
-      <div className="ghost-card-3d">
+      <div>
         <div className={`ghost-card-inner overflow-hidden transition-all duration-300 ${
           isPlaying ? 'border-emerald-500/40 shadow-emerald-950/30' : 'border-gray-800'
         }`}>
@@ -171,14 +171,14 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                 <button
                   onClick={handleStartSession}
                   disabled={isLoading}
-                  className="w-full py-4 ghost-btn-primary font-gaming font-bold text-base rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-4 bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-gaming font-black text-base rounded-xl border-2 border-emerald-300 shadow-[0_5px_0_0_#059669] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-y-1 active:shadow-none disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin text-emerald-950" />
                   ) : (
                     <>
-                      <Play className="w-5 h-5 fill-current text-black" />
-                      <span className="text-black">START FIFA SESSION 👻</span>
+                      <Play className="w-5 h-5 fill-emerald-950 text-emerald-950" />
+                      <span className="text-emerald-950 tracking-wide font-black">START FIFA SESSION 👻</span>
                     </>
                   )}
                 </button>
@@ -312,10 +312,10 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                     type="button"
                     onClick={() => setShowFinishModal(true)}
                     disabled={isLoading}
-                    className="ml-auto px-4 py-2.5 ghost-btn-danger font-gaming font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                    className="ml-auto px-4 py-2.5 ghost-btn-danger font-gaming font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>FINISH SESSION</span>
+                    <CheckCircle2 className="w-4 h-4 text-rose-950" />
+                    <span className="text-rose-950">FINISH SESSION</span>
                   </button>
                 </div>
               </div>

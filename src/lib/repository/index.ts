@@ -67,17 +67,23 @@ function getNextTvNumber(consoles: Console[]): number {
 const fsRepository: Repository = {
   async getSettings(): Promise<Settings> {
     const db = loadDb();
-    return db.settings;
+    const settingsObj = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    return settingsObj || { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', updated_at: new Date().toISOString() };
   },
 
   async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
     const db = loadDb();
-    db.settings.fifa_normal_price = fifa_normal_price;
-    db.settings.fifa_extra_time_price = fifa_extra_time_price;
-    db.settings.currency = currency;
-    db.settings.updated_at = new Date().toISOString();
+    const current = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const updated: Settings = {
+      id: current?.id || 'default',
+      fifa_normal_price,
+      fifa_extra_time_price,
+      currency,
+      updated_at: new Date().toISOString(),
+    };
+    db.settings = updated;
     saveDb(db);
-    return db.settings;
+    return updated;
   },
 
   async getConsoles(): Promise<Console[]> {
@@ -204,7 +210,7 @@ const fsRepository: Repository = {
       }
     }
 
-    const settings = db.settings;
+    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const sessionMatches = db.matches.filter((m) => m.session_id === sessionId);
     const nextMatchNum = sessionMatches.length > 0
       ? Math.max(...sessionMatches.map((m) => m.match_number)) + 1
@@ -212,7 +218,7 @@ const fsRepository: Repository = {
 
     const matchId = cryptoRandomUUID();
     const now = new Date().toISOString();
-    const basePrice = settings.fifa_normal_price;
+    const basePrice = settings?.fifa_normal_price ?? 15.00;
 
     const newMatch: Match = {
       id: matchId,
@@ -243,7 +249,8 @@ const fsRepository: Repository = {
     const match = db.matches.find((m) => m.id === matchId && m.session_id === sessionId);
     if (!match) throw new Error('Match not found');
 
-    const settings = db.settings;
+    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const extraPrice = settings?.fifa_extra_time_price ?? 5.00;
 
     if (match.extra_time) {
       match.extra_time = false;
@@ -251,8 +258,8 @@ const fsRepository: Repository = {
       match.total_price = match.base_price;
     } else {
       match.extra_time = true;
-      match.extra_time_price = settings.fifa_extra_time_price;
-      match.total_price = match.base_price + settings.fifa_extra_time_price;
+      match.extra_time_price = extraPrice;
+      match.total_price = match.base_price + extraPrice;
     }
 
     saveDb(db);
