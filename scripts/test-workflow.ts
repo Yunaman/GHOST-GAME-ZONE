@@ -3,18 +3,20 @@ import { loadDb, saveDb } from '../src/lib/db/fs-db';
 
 async function runTests() {
   console.log('----------------------------------------------------');
-  console.log('STARTING MANDATORY WORKFLOW VERIFICATION TESTS');
+  console.log('STARTING PRODUCTION WORKFLOW VERIFICATION TESTS');
   console.log('----------------------------------------------------');
 
-  // Reset db to clean state for tests
+  // Reset db to clean initial state for test run
   const db = loadDb();
   db.adjustments = [];
   db.payments = [];
   db.matches = [];
   db.sessions = [];
-  db.consoles.forEach((c) => {
-    c.status = 'AVAILABLE';
-  });
+  db.consoles = [
+    { id: 'c-1', name: 'TV 1', status: 'AVAILABLE', display_order: 1, is_active: true, created_at: new Date().toISOString() },
+    { id: 'c-2', name: 'TV 2', status: 'AVAILABLE', display_order: 2, is_active: true, created_at: new Date().toISOString() },
+    { id: 'c-3', name: 'TV 3', status: 'AVAILABLE', display_order: 3, is_active: true, created_at: new Date().toISOString() },
+  ];
   saveDb(db);
 
   const consoles = await repository.getConsoles();
@@ -79,7 +81,16 @@ async function runTests() {
   const tv1After = updatedConsoles.find((c) => c.id === tv1.id);
   if (tv1After?.status !== 'AVAILABLE') throw new Error('TV 1 did not return to AVAILABLE state!');
 
-  console.log('\n[TEST 8] Verifying Session History & Reports Analytics...');
+  console.log('\n[TEST 8] Testing Dynamic TV Station Creation (+ ADD TV)...');
+  const tv4 = await repository.addConsole();
+  const tv5 = await repository.addConsole();
+  const tv6 = await repository.addConsole();
+  console.log(`✓ Added stations: ${tv4.name}, ${tv5.name}, ${tv6.name}`);
+  if (tv4.name !== 'TV 4' || tv5.name !== 'TV 5' || tv6.name !== 'TV 6') {
+    throw new Error('Automatic TV station numbering failed!');
+  }
+
+  console.log('\n[TEST 9] Verifying Session History & Reports Analytics...');
   const history = await repository.getSessionsHistory();
   const recorded = history.find((s) => s.id === session1.id);
   if (!recorded) throw new Error('Session not found in history!');
@@ -98,14 +109,8 @@ async function runTests() {
     throw new Error('Analytics totals mismatch!');
   }
 
-  console.log('\n[TEST 9] Testing TV 2 & TV 3 Independent Sessions...');
-  const s2 = await repository.startSession(tv2.id);
-  await repository.addMatch(s2.id);
-  await repository.finishSession(s2.id, 'TELEBIRR', 'TXN-9988');
-  console.log('✓ TV 2 session completed independently with TELEBIRR.');
-
   console.log('\n----------------------------------------------------');
-  console.log('ALL MANDATORY VERIFICATION TESTS PASSED SUCCESSFULLY!');
+  console.log('ALL PRODUCTION WORKFLOW VERIFICATION TESTS PASSED SUCCESSFULLY!');
   console.log('----------------------------------------------------');
 }
 

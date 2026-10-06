@@ -26,6 +26,7 @@ export interface Console {
   name: string;
   status: ConsoleStatus;
   display_order: number;
+  is_active?: boolean;
   created_at: string;
 }
 
@@ -81,7 +82,6 @@ export interface Session {
   payment_status: PaymentStatus;
   created_by: string;
   created_at: string;
-  // Joined or populated fields
   console_name?: string;
   matches?: Match[];
   payments?: Payment[];

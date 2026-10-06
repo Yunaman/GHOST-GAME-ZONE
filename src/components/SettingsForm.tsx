@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import { Settings, Console } from '@/types';
-import { updateSettingsAction, updateConsoleNameAction } from '@/app/actions';
-import { Save, Loader2, Tv, DollarSign } from 'lucide-react';
+import {
+  updateSettingsAction,
+  updateConsoleNameAction,
+  addConsoleAction,
+  toggleConsoleActiveAction,
+} from '@/app/actions';
+import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface SettingsFormProps {
   settings: Settings;
@@ -19,8 +24,40 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
     consoles.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {})
   );
 
+  const [consoleActiveState, setConsoleActiveState] = useState<Record<string, boolean>>(
+    consoles.reduce((acc, c) => ({ ...acc, [c.id]: c.is_active !== false }), {})
+  );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddingTv, setIsAddingTv] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  async function handleAddTv() {
+    setIsAddingTv(true);
+    setMsg(null);
+    try {
+      const res = await addConsoleAction();
+      if (res.success && res.data) {
+        setMsg({ type: 'success', text: `Successfully created ${res.data.name}!` });
+      } else {
+        setMsg({ type: 'error', text: res.error || 'Failed to add TV' });
+      }
+    } catch (err: any) {
+      setMsg({ type: 'error', text: err?.message || 'Error adding TV' });
+    } finally {
+      setIsAddingTv(false);
+    }
+  }
+
+  async function handleToggleActive(consoleId: string, currentActive: boolean) {
+    const nextState = !currentActive;
+    setConsoleActiveState({ ...consoleActiveState, [consoleId]: nextState });
+    try {
+      await toggleConsoleActiveAction(consoleId, nextState);
+    } catch (err: any) {
+      setMsg({ type: 'error', text: 'Failed to update TV active status' });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +77,7 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
         }
       }
 
-      setMsg({ type: 'success', text: 'Settings updated successfully!' });
+      setMsg({ type: 'success', text: 'System settings saved successfully!' });
     } catch (err: any) {
       setMsg({ type: 'error', text: err?.message || 'Error saving settings' });
     } finally {
@@ -49,15 +86,15 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 font-mono">
       {/* FIFA Pricing Section */}
       <div className="ghost-glass-card p-5 space-y-4">
-        <h2 className="font-mono font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
+        <h2 className="font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
           <DollarSign className="w-5 h-5 text-emerald-400" />
-          <span>FIFA Pricing & Currency Configuration</span>
+          <span>FIFA Pricing & Currency</span>
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
             <label className="block font-bold text-gray-300 uppercase mb-1">
               Normal Match Price ({currency})
@@ -67,20 +104,20 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               step="1"
               value={fifaNormalPrice}
               onChange={(e) => setFifaNormalPrice(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
             <label className="block font-bold text-gray-300 uppercase mb-1">
-              Extra Time Add-on Price ({currency})
+              Extra Time Add-on ({currency})
             </label>
             <input
               type="number"
               step="1"
               value={fifaExtraTimePrice}
               onChange={(e) => setFifaExtraTimePrice(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
 
@@ -92,31 +129,80 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
               type="text"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
+              className="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-emerald-500"
             />
           </div>
         </div>
       </div>
 
-      {/* TV Console Naming */}
+      {/* TV Console Station Management */}
       <div className="ghost-glass-card p-5 space-y-4">
-        <h2 className="font-mono font-bold text-base text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-3">
-          <Tv className="w-5 h-5 text-blue-400" />
-          <span>Gaming TV Console Station Names</span>
-        </h2>
+        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+          <h2 className="font-bold text-base text-white uppercase flex items-center gap-2">
+            <Tv className="w-5 h-5 text-blue-400" />
+            <span>Gaming TV Stations ({consoles.length})</span>
+          </h2>
 
-        <div className="space-y-3 font-mono text-xs">
-          {consoles.map((c) => (
-            <div key={c.id} className="flex items-center gap-3">
-              <span className="w-24 font-bold text-gray-400">Station ID: {c.id}</span>
-              <input
-                type="text"
-                value={consoleNames[c.id] || ''}
-                onChange={(e) => setConsoleNames({ ...consoleNames, [c.id]: e.target.value })}
-                className="flex-1 px-3 py-2 bg-gray-950 border border-gray-800 rounded-xl text-white font-bold text-sm outline-none focus:border-blue-500"
-              />
-            </div>
-          ))}
+          <button
+            type="button"
+            onClick={handleAddTv}
+            disabled={isAddingTv}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow-md transition-all disabled:opacity-50"
+          >
+            {isAddingTv ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>+ ADD TV</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="space-y-3 text-xs">
+          {consoles.map((c) => {
+            const isActive = consoleActiveState[c.id] ?? (c.is_active !== false);
+            return (
+              <div
+                key={c.id}
+                className="p-3 bg-gray-950/80 border border-gray-800 rounded-xl flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 flex-1">
+                  <span className="text-gray-500 text-[11px] font-bold uppercase w-12">
+                    {c.id}
+                  </span>
+                  <input
+                    type="text"
+                    value={consoleNames[c.id] || ''}
+                    onChange={(e) => setConsoleNames({ ...consoleNames, [c.id]: e.target.value })}
+                    className="px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-lg text-white font-bold text-sm outline-none focus:border-blue-500 max-w-xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                    isActive ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                  }`}>
+                    {isActive ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(c.id, isActive)}
+                    className="p-1.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    title={isActive ? 'Deactivate TV' : 'Activate TV'}
+                  >
+                    {isActive ? (
+                      <ToggleRight className="w-6 h-6 text-emerald-400" />
+                    ) : (
+                      <ToggleLeft className="w-6 h-6 text-gray-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -138,7 +224,7 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
         ) : (
           <>
             <Save className="w-5 h-5" />
-            <span>SAVE SYSTEM SETTINGS</span>
+            <span>SAVE SYSTEM CONFIGURATION</span>
           </>
         )}
       </button>
