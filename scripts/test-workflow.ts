@@ -1,17 +1,21 @@
 import { repository } from '../src/lib/repository';
-import { sqliteDb } from '../src/lib/db/sqlite';
+import { loadDb, saveDb } from '../src/lib/db/fs-db';
 
 async function runTests() {
   console.log('----------------------------------------------------');
   console.log('STARTING MANDATORY WORKFLOW VERIFICATION TESTS');
   console.log('----------------------------------------------------');
 
-  // Reset database tables to clean state for test run
-  sqliteDb.exec('DELETE FROM adjustments');
-  sqliteDb.exec('DELETE FROM payments');
-  sqliteDb.exec('DELETE FROM matches');
-  sqliteDb.exec('DELETE FROM sessions');
-  sqliteDb.exec("UPDATE consoles SET status = 'AVAILABLE'");
+  // Reset db to clean state for tests
+  const db = loadDb();
+  db.adjustments = [];
+  db.payments = [];
+  db.matches = [];
+  db.sessions = [];
+  db.consoles.forEach((c) => {
+    c.status = 'AVAILABLE';
+  });
+  saveDb(db);
 
   const consoles = await repository.getConsoles();
   const tv1 = consoles.find((c) => c.name === 'TV 1') || consoles[0];
@@ -24,7 +28,7 @@ async function runTests() {
     throw new Error('Test 1 failed: session not active or total not 0');
   }
 
-  // Prevent double sessions on same TV
+  // Prevent double active sessions on same TV
   try {
     await repository.startSession(tv1.id);
     throw new Error('Test failed: Allowed second active session on TV 1!');
@@ -61,7 +65,7 @@ async function runTests() {
   console.log(`✓ Double tap prevented. Match count did not duplicate. Total: ${tap2.sessionTotal} ETB`);
   if (tap1.match.id !== tap2.match.id) throw new Error('Idempotency failed: duplicated match!');
 
-  // Revert the idempotency test match using undo
+  // Revert test match using undo
   await repository.undoLastMatch(session1.id);
   const checkTotalAfterUndo = (await repository.getSessionById(session1.id))?.total_amount;
   console.log(`✓ Undid test match. Session Total restored to: ${checkTotalAfterUndo} ETB (Expected 50 ETB)`);

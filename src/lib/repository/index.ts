@@ -1,5 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/lib/db/supabase';
-import { sqliteDb } from '@/lib/db/sqlite';
+import { loadDb, saveDb } from '@/lib/db/fs-db';
 import {
   Console,
   Session,
@@ -31,107 +31,111 @@ export interface Repository {
   getUserByUsername(username: string): Promise<User | null>;
 }
 
-// Helper to recalculate SQLite session totals safely
-function syncSqliteSessionTotal(sessionId: string): number {
-  const matches = sqliteDb.prepare('SELECT total_price FROM matches WHERE session_id = ?').all(sessionId) as { total_price: number }[];
-  const adjustments = sqliteDb.prepare('SELECT adjustment_amount FROM adjustments WHERE session_id = ?').all(sessionId) as { adjustment_amount: number }[];
+function syncFsSessionTotal(sessionId: string): number {
+  const db = loadDb();
+  const sessionMatches = db.matches.filter((m) => m.session_id === sessionId);
+  const sessionAdjustments = db.adjustments.filter((a) => a.session_id === sessionId);
 
-  const matchesSum = matches.reduce((acc, m) => acc + m.total_price, 0);
-  const adjustmentsSum = adjustments.reduce((acc, a) => acc + a.adjustment_amount, 0);
+  const matchesSum = sessionMatches.reduce((acc, m) => acc + m.total_price, 0);
+  const adjustmentsSum = sessionAdjustments.reduce((acc, a) => acc + a.adjustment_amount, 0);
   const total = matchesSum + adjustmentsSum;
 
-  sqliteDb.prepare('UPDATE sessions SET total_amount = ? WHERE id = ?').run(total, sessionId);
+  const session = db.sessions.find((s) => s.id === sessionId);
+  if (session) {
+    session.total_amount = total;
+    saveDb(db);
+  }
   return total;
 }
 
-// --- SQLite Implementation ---
-const sqliteRepository: Repository = {
+// --- Local Pure JS FileSystem Persistence Repository ---
+const fsRepository: Repository = {
   async getSettings(): Promise<Settings> {
-    const row = sqliteDb.prepare('SELECT * FROM settings WHERE id = ?').get('default') as Settings;
-    if (!row) {
-      const now = new Date().toISOString();
-      sqliteDb.prepare('INSERT INTO settings (id, fifa_normal_price, fifa_extra_time_price, currency, updated_at) VALUES (\'default\', 15, 5, \'ETB\', ?)').run(now);
-      return { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', updated_at: now };
-    }
-    return row;
+    const db = loadDb();
+    return db.settings;
   },
 
   async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
-    const now = new Date().toISOString();
-    sqliteDb.prepare(`
-      UPDATE settings
-      SET fifa_normal_price = ?, fifa_extra_time_price = ?, currency = ?, updated_at = ?
-      WHERE id = 'default'
-    `).run(fifa_normal_price, fifa_extra_time_price, currency, now);
-    return this.getSettings();
+    const db = loadDb();
+    db.settings.fifa_normal_price = fifa_normal_price;
+    db.settings.fifa_extra_time_price = fifa_extra_time_price;
+    db.settings.currency = currency;
+    db.settings.updated_at = new Date().toISOString();
+    saveDb(db);
+    return db.settings;
   },
 
   async getConsoles(): Promise<Console[]> {
-    return sqliteDb.prepare('SELECT * FROM consoles ORDER BY display_order ASC').all() as Console[];
+    const db = loadDb();
+    return [...db.consoles].sort((a, b) => a.display_order - b.display_order);
   },
 
   async updateConsoleName(id: string, name: string): Promise<Console> {
-    sqliteDb.prepare('UPDATE consoles SET name = ? WHERE id = ?').run(name, id);
-    return sqliteDb.prepare('SELECT * FROM consoles WHERE id = ?').get(id) as Console;
+    const db = loadDb();
+    const consoleObj = db.consoles.find((c) => c.id === id);
+    if (!consoleObj) throw new Error('Console TV not found');
+    consoleObj.name = name;
+    saveDb(db);
+    return consoleObj;
   },
 
   async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
-    const sessionRow = sqliteDb.prepare('SELECT * FROM sessions WHERE console_id = ? AND status = \'ACTIVE\'').get(consoleId) as Session | undefined;
-    if (!sessionRow) return null;
-
-    return this.getSessionById(sessionRow.id);
+    const db = loadDb();
+    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
+    if (!active) return null;
+    return this.getSessionById(active.id);
   },
 
   async getSessionById(sessionId: string): Promise<Session | null> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) return null;
 
-    const consoleObj = sqliteDb.prepare('SELECT name FROM consoles WHERE id = ?').get(session.console_id) as { name: string } | undefined;
-    const matches = sqliteDb.prepare('SELECT * FROM matches WHERE session_id = ? ORDER BY match_number ASC').all(sessionId) as Match[];
-
-    // Map SQLite integer boolean to JS boolean for extra_time
-    const formattedMatches = matches.map(m => ({
-      ...m,
-      extra_time: Boolean(m.extra_time)
-    }));
-
-    const payments = sqliteDb.prepare('SELECT * FROM payments WHERE session_id = ?').all(sessionId) as Payment[];
-    const adjustments = sqliteDb.prepare('SELECT * FROM adjustments WHERE session_id = ? ORDER BY created_at ASC').all(sessionId) as Adjustment[];
+    const consoleObj = db.consoles.find((c) => c.id === session.console_id);
+    const matches = db.matches
+      .filter((m) => m.session_id === sessionId)
+      .sort((a, b) => a.match_number - b.match_number);
+    const payments = db.payments.filter((p) => p.session_id === sessionId);
+    const adjustments = db.adjustments
+      .filter((a) => a.session_id === sessionId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     return {
       ...session,
       console_name: consoleObj?.name || 'TV',
-      matches: formattedMatches,
+      matches,
       payments,
-      adjustments
+      adjustments,
     };
   },
 
   async startSession(consoleId: string, createdBy = 'Staff'): Promise<Session> {
-    // Ensure TV exists
-    const consoleObj = sqliteDb.prepare('SELECT * FROM consoles WHERE id = ?').get(consoleId) as Console;
+    const db = loadDb();
+    const consoleObj = db.consoles.find((c) => c.id === consoleId);
     if (!consoleObj) throw new Error('Console TV not found');
 
-    // Ensure no active session exists on this TV
-    const active = sqliteDb.prepare('SELECT id FROM sessions WHERE console_id = ? AND status = \'ACTIVE\'').get(consoleId);
+    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
     if (active) throw new Error('TV already has an active session');
 
     const sessionId = cryptoRandomUUID();
     const now = new Date().toISOString();
 
-    const insertStmt = sqliteDb.prepare(`
-      INSERT INTO sessions (id, console_id, game_type, billing_type, status, started_at, total_amount, payment_status, created_by, created_at)
-      VALUES (?, ?, 'FIFA', 'MATCH_BASED', 'ACTIVE', ?, 0.00, 'UNPAID', ?, ?)
-    `);
+    const newSession: Session = {
+      id: sessionId,
+      console_id: consoleId,
+      game_type: 'FIFA',
+      billing_type: 'MATCH_BASED',
+      status: 'ACTIVE',
+      started_at: now,
+      total_amount: 0.00,
+      payment_status: 'UNPAID',
+      created_by: createdBy,
+      created_at: now,
+    };
 
-    const updateConsoleStmt = sqliteDb.prepare(`
-      UPDATE consoles SET status = 'PLAYING' WHERE id = ?
-    `);
-
-    sqliteDb.transaction(() => {
-      insertStmt.run(sessionId, consoleId, now, createdBy, now);
-      updateConsoleStmt.run(consoleId);
-    })();
+    db.sessions.push(newSession);
+    consoleObj.status = 'PLAYING';
+    saveDb(db);
 
     const created = await this.getSessionById(sessionId);
     if (!created) throw new Error('Failed to retrieve created session');
@@ -139,119 +143,133 @@ const sqliteRepository: Repository = {
   },
 
   async addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
       throw new Error('Session is not active');
     }
 
-    // Check idempotency if key provided
     if (idempotencyKey) {
-      const existing = sqliteDb.prepare('SELECT * FROM matches WHERE session_id = ? AND client_idempotency_key = ?').get(sessionId, idempotencyKey) as Match | undefined;
+      const existing = db.matches.find(
+        (m) => m.session_id === sessionId && m.client_idempotency_key === idempotencyKey
+      );
       if (existing) {
-        const currentTotal = syncSqliteSessionTotal(sessionId);
-        return { match: { ...existing, extra_time: Boolean(existing.extra_time) }, sessionTotal: currentTotal };
+        const currentTotal = syncFsSessionTotal(sessionId);
+        return { match: existing, sessionTotal: currentTotal };
       }
     }
 
-    const settings = await this.getSettings();
-    const existingMatches = sqliteDb.prepare('SELECT match_number FROM matches WHERE session_id = ? ORDER BY match_number DESC').all(sessionId) as { match_number: number }[];
-    const nextMatchNum = existingMatches.length > 0 ? existingMatches[0].match_number + 1 : 1;
+    const settings = db.settings;
+    const sessionMatches = db.matches.filter((m) => m.session_id === sessionId);
+    const nextMatchNum = sessionMatches.length > 0
+      ? Math.max(...sessionMatches.map((m) => m.match_number)) + 1
+      : 1;
 
     const matchId = cryptoRandomUUID();
     const now = new Date().toISOString();
     const basePrice = settings.fifa_normal_price;
 
-    sqliteDb.prepare(`
-      INSERT INTO matches (id, session_id, match_number, base_price, extra_time, extra_time_price, total_price, client_idempotency_key, created_at)
-      VALUES (?, ?, ?, ?, 0, 0.00, ?, ?, ?)
-    `).run(matchId, sessionId, nextMatchNum, basePrice, basePrice, idempotencyKey || null, now);
-
-    const sessionTotal = syncSqliteSessionTotal(sessionId);
-    const createdMatch = sqliteDb.prepare('SELECT * FROM matches WHERE id = ?').get(matchId) as Match;
-
-    return {
-      match: { ...createdMatch, extra_time: Boolean(createdMatch.extra_time) },
-      sessionTotal
+    const newMatch: Match = {
+      id: matchId,
+      session_id: sessionId,
+      match_number: nextMatchNum,
+      base_price: basePrice,
+      extra_time: false,
+      extra_time_price: 0.00,
+      total_price: basePrice,
+      client_idempotency_key: idempotencyKey,
+      created_at: now,
     };
+
+    db.matches.push(newMatch);
+    saveDb(db);
+
+    const sessionTotal = syncFsSessionTotal(sessionId);
+    return { match: newMatch, sessionTotal };
   },
 
   async toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
       throw new Error('Session is not active');
     }
 
-    const match = sqliteDb.prepare('SELECT * FROM matches WHERE id = ? AND session_id = ?').get(matchId, sessionId) as Match | undefined;
+    const match = db.matches.find((m) => m.id === matchId && m.session_id === sessionId);
     if (!match) throw new Error('Match not found');
 
-    const settings = await this.getSettings();
+    const settings = db.settings;
 
     if (match.extra_time) {
-      // Revert extra time
-      const newTotalPrice = match.base_price;
-      sqliteDb.prepare(`
-        UPDATE matches SET extra_time = 0, extra_time_price = 0.00, total_price = ? WHERE id = ?
-      `).run(newTotalPrice, matchId);
+      match.extra_time = false;
+      match.extra_time_price = 0.00;
+      match.total_price = match.base_price;
     } else {
-      // Add extra time
-      const extraPrice = settings.fifa_extra_time_price;
-      const newTotalPrice = match.base_price + extraPrice;
-      sqliteDb.prepare(`
-        UPDATE matches SET extra_time = 1, extra_time_price = ?, total_price = ? WHERE id = ?
-      `).run(extraPrice, newTotalPrice, matchId);
+      match.extra_time = true;
+      match.extra_time_price = settings.fifa_extra_time_price;
+      match.total_price = match.base_price + settings.fifa_extra_time_price;
     }
 
-    const sessionTotal = syncSqliteSessionTotal(sessionId);
-    const updatedMatch = sqliteDb.prepare('SELECT * FROM matches WHERE id = ?').get(matchId) as Match;
-
-    return {
-      match: { ...updatedMatch, extra_time: Boolean(updatedMatch.extra_time) },
-      sessionTotal
-    };
+    saveDb(db);
+    const sessionTotal = syncFsSessionTotal(sessionId);
+    return { match, sessionTotal };
   },
 
   async undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
       throw new Error('Session is not active');
     }
 
-    const lastMatch = sqliteDb.prepare('SELECT id FROM matches WHERE session_id = ? ORDER BY match_number DESC LIMIT 1').get(sessionId) as { id: string } | undefined;
-    if (!lastMatch) {
+    const sessionMatches = db.matches
+      .filter((m) => m.session_id === sessionId)
+      .sort((a, b) => b.match_number - a.match_number);
+
+    if (sessionMatches.length === 0) {
       return { sessionTotal: 0 };
     }
 
-    sqliteDb.prepare('DELETE FROM matches WHERE id = ?').run(lastMatch.id);
-    const sessionTotal = syncSqliteSessionTotal(sessionId);
+    const lastMatch = sessionMatches[0];
+    db.matches = db.matches.filter((m) => m.id !== lastMatch.id);
+    saveDb(db);
 
+    const sessionTotal = syncFsSessionTotal(sessionId);
     return { sessionTotal };
   },
 
   async finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) throw new Error('Session not found');
-    if (session.status !== 'ACTIVE') throw new Error('Session is already finished or cancelled');
+    if (session.status !== 'ACTIVE') throw new Error('Session is already finished');
 
-    const finalTotal = syncSqliteSessionTotal(sessionId);
+    const finalTotal = syncFsSessionTotal(sessionId);
     const now = new Date().toISOString();
     const paymentId = cryptoRandomUUID();
 
-    sqliteDb.transaction(() => {
-      sqliteDb.prepare(`
-        INSERT INTO payments (id, session_id, method, amount, reference, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(paymentId, sessionId, paymentMethod, finalTotal, reference || null, now);
+    const newPayment: Payment = {
+      id: paymentId,
+      session_id: sessionId,
+      method: paymentMethod,
+      amount: finalTotal,
+      reference: reference || undefined,
+      created_at: now,
+    };
 
-      sqliteDb.prepare(`
-        UPDATE sessions
-        SET status = 'FINISHED', payment_status = 'PAID', finished_at = ?, total_amount = ?
-        WHERE id = ?
-      `).run(now, finalTotal, sessionId);
+    db.payments.push(newPayment);
 
-      sqliteDb.prepare(`
-        UPDATE consoles SET status = 'AVAILABLE' WHERE id = ?
-      `).run(session.console_id);
-    })();
+    session.status = 'FINISHED';
+    session.payment_status = 'PAID';
+    session.finished_at = now;
+    session.total_amount = finalTotal;
+
+    const consoleObj = db.consoles.find((c) => c.id === session.console_id);
+    if (consoleObj) {
+      consoleObj.status = 'AVAILABLE';
+    }
+
+    saveDb(db);
 
     const finished = await this.getSessionById(sessionId);
     if (!finished) throw new Error('Failed to fetch finished session');
@@ -259,7 +277,8 @@ const sqliteRepository: Repository = {
   },
 
   async createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager'): Promise<Adjustment> {
-    const session = sqliteDb.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId) as Session | undefined;
+    const db = loadDb();
+    const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) throw new Error('Session not found');
 
     const id = cryptoRandomUUID();
@@ -267,27 +286,42 @@ const sqliteRepository: Repository = {
     const originalAmount = session.total_amount;
     const resultingAmount = originalAmount + adjustmentAmount;
 
-    sqliteDb.transaction(() => {
-      sqliteDb.prepare(`
-        INSERT INTO adjustments (id, session_id, original_amount, adjustment_amount, resulting_amount, reason, created_by, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, sessionId, originalAmount, adjustmentAmount, resultingAmount, reason, createdBy, now);
+    const newAdjustment: Adjustment = {
+      id,
+      session_id: sessionId,
+      original_amount: originalAmount,
+      adjustment_amount: adjustmentAmount,
+      resulting_amount: resultingAmount,
+      reason,
+      created_by: createdBy,
+      created_at: now,
+    };
 
-      syncSqliteSessionTotal(sessionId);
+    db.adjustments.push(newAdjustment);
+    saveDb(db);
 
-      if (session.status === 'FINISHED') {
-        sqliteDb.prepare('UPDATE payments SET amount = ? WHERE session_id = ?').run(resultingAmount, sessionId);
+    syncFsSessionTotal(sessionId);
+
+    if (session.status === 'FINISHED') {
+      const payment = db.payments.find((p) => p.session_id === sessionId);
+      if (payment) {
+        payment.amount = resultingAmount;
+        saveDb(db);
       }
-    })();
+    }
 
-    return sqliteDb.prepare('SELECT * FROM adjustments WHERE id = ?').get(id) as Adjustment;
+    return newAdjustment;
   },
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
-    const rows = sqliteDb.prepare('SELECT id FROM sessions ORDER BY created_at DESC LIMIT ?').all(limit) as { id: string }[];
+    const db = loadDb();
+    const sorted = [...db.sessions]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
+
     const result: Session[] = [];
-    for (const r of rows) {
-      const sess = await this.getSessionById(r.id);
+    for (const item of sorted) {
+      const sess = await this.getSessionById(item.id);
       if (sess) result.push(sess);
     }
     return result;
@@ -295,7 +329,7 @@ const sqliteRepository: Repository = {
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
     const sessions = await this.getSessionsHistory(1000);
-    const finishedSessions = sessions.filter(s => s.status === 'FINISHED');
+    const finishedSessions = sessions.filter((s) => s.status === 'FINISHED');
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -338,7 +372,7 @@ const sqliteRepository: Repository = {
         todayRev += amt;
         todaySessions++;
         const matchCount = sess.matches?.length || 0;
-        const extraCount = sess.matches?.filter(m => m.extra_time).length || 0;
+        const extraCount = sess.matches?.filter((m) => m.extra_time).length || 0;
         todayMatches += matchCount;
         todayExtraTimes += extraCount;
       }
@@ -373,32 +407,34 @@ const sqliteRepository: Repository = {
   },
 
   async getUsers(): Promise<User[]> {
-    return sqliteDb.prepare('SELECT id, username, display_name, role, created_at FROM users').all() as User[];
+    const db = loadDb();
+    return db.users;
   },
 
   async getUserByUsername(username: string): Promise<User | null> {
-    const user = sqliteDb.prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+    const db = loadDb();
+    const user = db.users.find((u) => u.username === username);
     return user || null;
-  }
+  },
 };
 
 // --- Supabase Implementation ---
 const supabaseRepository: Repository = {
   async getSettings(): Promise<Settings> {
-    if (!supabase) return sqliteRepository.getSettings();
+    if (!supabase) return fsRepository.getSettings();
     const { data, error } = await supabase.from('settings').select('*').eq('id', 'default').single();
-    if (error || !data) return sqliteRepository.getSettings();
+    if (error || !data) return fsRepository.getSettings();
     return {
       id: data.id,
       fifa_normal_price: Number(data.fifa_normal_price),
       fifa_extra_time_price: Number(data.fifa_extra_time_price),
       currency: data.currency,
-      updated_at: data.updated_at
+      updated_at: data.updated_at,
     };
   },
 
   async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
-    if (!supabase) return sqliteRepository.updateSettings(fifa_normal_price, fifa_extra_time_price, currency);
+    if (!supabase) return fsRepository.updateSettings(fifa_normal_price, fifa_extra_time_price, currency);
     const { data, error } = await supabase
       .from('settings')
       .update({ fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
@@ -412,26 +448,26 @@ const supabaseRepository: Repository = {
       fifa_normal_price: Number(data.fifa_normal_price),
       fifa_extra_time_price: Number(data.fifa_extra_time_price),
       currency: data.currency,
-      updated_at: data.updated_at
+      updated_at: data.updated_at,
     };
   },
 
   async getConsoles(): Promise<Console[]> {
-    if (!supabase) return sqliteRepository.getConsoles();
+    if (!supabase) return fsRepository.getConsoles();
     const { data, error } = await supabase.from('consoles').select('*').order('display_order', { ascending: true });
-    if (error || !data) return sqliteRepository.getConsoles();
+    if (error || !data) return fsRepository.getConsoles();
     return data as Console[];
   },
 
   async updateConsoleName(id: string, name: string): Promise<Console> {
-    if (!supabase) return sqliteRepository.updateConsoleName(id, name);
+    if (!supabase) return fsRepository.updateConsoleName(id, name);
     const { data, error } = await supabase.from('consoles').update({ name }).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     return data as Console;
   },
 
   async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
-    if (!supabase) return sqliteRepository.getActiveSessionByConsoleId(consoleId);
+    if (!supabase) return fsRepository.getActiveSessionByConsoleId(consoleId);
     const { data, error } = await supabase
       .from('sessions')
       .select('id')
@@ -444,7 +480,7 @@ const supabaseRepository: Repository = {
   },
 
   async getSessionById(sessionId: string): Promise<Session | null> {
-    if (!supabase) return sqliteRepository.getSessionById(sessionId);
+    if (!supabase) return fsRepository.getSessionById(sessionId);
     const { data: session, error } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
     if (error || !session) return null;
 
@@ -457,38 +493,41 @@ const supabaseRepository: Repository = {
       ...session,
       total_amount: Number(session.total_amount),
       console_name: consoleObj?.name || 'TV',
-      matches: (matches || []).map(m => ({
+      matches: (matches || []).map((m) => ({
         ...m,
         base_price: Number(m.base_price),
         extra_time_price: Number(m.extra_time_price),
         total_price: Number(m.total_price),
       })),
-      payments: (payments || []).map(p => ({ ...p, amount: Number(p.amount) })),
-      adjustments: (adjustments || []).map(a => ({
+      payments: (payments || []).map((p) => ({ ...p, amount: Number(p.amount) })),
+      adjustments: (adjustments || []).map((a) => ({
         ...a,
         original_amount: Number(a.original_amount),
         adjustment_amount: Number(a.adjustment_amount),
         resulting_amount: Number(a.resulting_amount),
-      }))
+      })),
     };
   },
 
   async startSession(consoleId: string, createdBy = 'Staff'): Promise<Session> {
-    if (!supabase) return sqliteRepository.startSession(consoleId, createdBy);
+    if (!supabase) return fsRepository.startSession(consoleId, createdBy);
 
-    // Check active
     const { data: existing } = await supabase.from('sessions').select('id').eq('console_id', consoleId).eq('status', 'ACTIVE').single();
     if (existing) throw new Error('TV already has an active session');
 
-    const { data: session, error } = await supabase.from('sessions').insert({
-      console_id: consoleId,
-      game_type: 'FIFA',
-      billing_type: 'MATCH_BASED',
-      status: 'ACTIVE',
-      total_amount: 0.00,
-      payment_status: 'UNPAID',
-      created_by: createdBy
-    }).select().single();
+    const { data: session, error } = await supabase
+      .from('sessions')
+      .insert({
+        console_id: consoleId,
+        game_type: 'FIFA',
+        billing_type: 'MATCH_BASED',
+        status: 'ACTIVE',
+        total_amount: 0.00,
+        payment_status: 'UNPAID',
+        created_by: createdBy,
+      })
+      .select()
+      .single();
 
     if (error || !session) throw new Error(error?.message || 'Failed to start session');
 
@@ -500,13 +539,18 @@ const supabaseRepository: Repository = {
   },
 
   async addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }> {
-    if (!supabase) return sqliteRepository.addMatch(sessionId, idempotencyKey);
+    if (!supabase) return fsRepository.addMatch(sessionId, idempotencyKey);
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
     if (idempotencyKey) {
-      const { data: existing } = await supabase.from('matches').select('*').eq('session_id', sessionId).eq('client_idempotency_key', idempotencyKey).single();
+      const { data: existing } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('client_idempotency_key', idempotencyKey)
+        .single();
       if (existing) {
         return { match: existing as Match, sessionTotal: session.total_amount };
       }
@@ -516,19 +560,22 @@ const supabaseRepository: Repository = {
     const nextMatchNum = (session.matches?.length || 0) + 1;
     const basePrice = settings.fifa_normal_price;
 
-    const { data: createdMatch, error } = await supabase.from('matches').insert({
-      session_id: sessionId,
-      match_number: nextMatchNum,
-      base_price: basePrice,
-      extra_time: false,
-      extra_time_price: 0.00,
-      total_price: basePrice,
-      client_idempotency_key: idempotencyKey || null
-    }).select().single();
+    const { data: createdMatch, error } = await supabase
+      .from('matches')
+      .insert({
+        session_id: sessionId,
+        match_number: nextMatchNum,
+        base_price: basePrice,
+        extra_time: false,
+        extra_time_price: 0.00,
+        total_price: basePrice,
+        client_idempotency_key: idempotencyKey || null,
+      })
+      .select()
+      .single();
 
     if (error || !createdMatch) throw new Error(error?.message || 'Failed to create match');
 
-    // Sync total
     const updatedMatches = [...(session.matches || []), createdMatch];
     const newTotal = updatedMatches.reduce((acc, m) => acc + Number(m.total_price), 0);
     await supabase.from('sessions').update({ total_amount: newTotal }).eq('id', sessionId);
@@ -540,17 +587,17 @@ const supabaseRepository: Repository = {
         extra_time_price: Number(createdMatch.extra_time_price),
         total_price: Number(createdMatch.total_price),
       },
-      sessionTotal: newTotal
+      sessionTotal: newTotal,
     };
   },
 
   async toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }> {
-    if (!supabase) return sqliteRepository.toggleMatchExtraTime(sessionId, matchId);
+    if (!supabase) return fsRepository.toggleMatchExtraTime(sessionId, matchId);
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
-    const match = session.matches?.find(m => m.id === matchId);
+    const match = session.matches?.find((m) => m.id === matchId);
     if (!match) throw new Error('Match not found');
 
     const settings = await this.getSettings();
@@ -558,11 +605,16 @@ const supabaseRepository: Repository = {
     const extraPrice = isAdding ? settings.fifa_extra_time_price : 0.00;
     const totalPrice = match.base_price + extraPrice;
 
-    const { data: updated, error } = await supabase.from('matches').update({
-      extra_time: isAdding,
-      extra_time_price: extraPrice,
-      total_price: totalPrice
-    }).eq('id', matchId).select().single();
+    const { data: updated, error } = await supabase
+      .from('matches')
+      .update({
+        extra_time: isAdding,
+        extra_time_price: extraPrice,
+        total_price: totalPrice,
+      })
+      .eq('id', matchId)
+      .select()
+      .single();
 
     if (error || !updated) throw new Error(error?.message || 'Failed to update match');
 
@@ -580,12 +632,12 @@ const supabaseRepository: Repository = {
         extra_time_price: Number(updated.extra_time_price),
         total_price: Number(updated.total_price),
       },
-      sessionTotal: newTotal
+      sessionTotal: newTotal,
     };
   },
 
   async undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }> {
-    if (!supabase) return sqliteRepository.undoLastMatch(sessionId);
+    if (!supabase) return fsRepository.undoLastMatch(sessionId);
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
@@ -605,7 +657,7 @@ const supabaseRepository: Repository = {
   },
 
   async finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session> {
-    if (!supabase) return sqliteRepository.finishSession(sessionId, paymentMethod, reference);
+    if (!supabase) return fsRepository.finishSession(sessionId, paymentMethod, reference);
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is already finished');
@@ -617,14 +669,17 @@ const supabaseRepository: Repository = {
       session_id: sessionId,
       method: paymentMethod,
       amount: finalTotal,
-      reference: reference || null
+      reference: reference || null,
     });
 
-    await supabase.from('sessions').update({
-      status: 'FINISHED',
-      payment_status: 'PAID',
-      finished_at: now
-    }).eq('id', sessionId);
+    await supabase
+      .from('sessions')
+      .update({
+        status: 'FINISHED',
+        payment_status: 'PAID',
+        finished_at: now,
+      })
+      .eq('id', sessionId);
 
     await supabase.from('consoles').update({ status: 'AVAILABLE' }).eq('id', session.console_id);
 
@@ -634,7 +689,7 @@ const supabaseRepository: Repository = {
   },
 
   async createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager'): Promise<Adjustment> {
-    if (!supabase) return sqliteRepository.createAdjustment(sessionId, adjustmentAmount, reason, createdBy);
+    if (!supabase) return fsRepository.createAdjustment(sessionId, adjustmentAmount, reason, createdBy);
 
     const session = await this.getSessionById(sessionId);
     if (!session) throw new Error('Session not found');
@@ -642,14 +697,18 @@ const supabaseRepository: Repository = {
     const originalAmount = session.total_amount;
     const resultingAmount = originalAmount + adjustmentAmount;
 
-    const { data: adj, error } = await supabase.from('adjustments').insert({
-      session_id: sessionId,
-      original_amount: originalAmount,
-      adjustment_amount: adjustmentAmount,
-      resulting_amount: resultingAmount,
-      reason,
-      created_by: createdBy
-    }).select().single();
+    const { data: adj, error } = await supabase
+      .from('adjustments')
+      .insert({
+        session_id: sessionId,
+        original_amount: originalAmount,
+        adjustment_amount: adjustmentAmount,
+        resulting_amount: resultingAmount,
+        reason,
+        created_by: createdBy,
+      })
+      .select()
+      .single();
 
     if (error || !adj) throw new Error(error?.message || 'Failed to create adjustment');
 
@@ -668,7 +727,7 @@ const supabaseRepository: Repository = {
   },
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
-    if (!supabase) return sqliteRepository.getSessionsHistory(limit);
+    if (!supabase) return fsRepository.getSessionsHistory(limit);
     const { data } = await supabase.from('sessions').select('id').order('created_at', { ascending: false }).limit(limit);
     if (!data) return [];
 
@@ -681,9 +740,9 @@ const supabaseRepository: Repository = {
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
-    if (!supabase) return sqliteRepository.getAnalyticsSummary();
+    if (!supabase) return fsRepository.getAnalyticsSummary();
     const sessions = await this.getSessionsHistory(1000);
-    const finishedSessions = sessions.filter(s => s.status === 'FINISHED');
+    const finishedSessions = sessions.filter((s) => s.status === 'FINISHED');
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -724,7 +783,7 @@ const supabaseRepository: Repository = {
         todayRev += amt;
         todaySessions++;
         const matchCount = sess.matches?.length || 0;
-        const extraCount = sess.matches?.filter(m => m.extra_time).length || 0;
+        const extraCount = sess.matches?.filter((m) => m.extra_time).length || 0;
         todayMatches += matchCount;
         todayExtraTimes += extraCount;
       }
@@ -759,17 +818,17 @@ const supabaseRepository: Repository = {
   },
 
   async getUsers(): Promise<User[]> {
-    if (!supabase) return sqliteRepository.getUsers();
+    if (!supabase) return fsRepository.getUsers();
     const { data } = await supabase.from('users').select('id, username, display_name, role, created_at');
     return (data || []) as User[];
   },
 
   async getUserByUsername(username: string): Promise<User | null> {
-    if (!supabase) return sqliteRepository.getUserByUsername(username);
+    if (!supabase) return fsRepository.getUserByUsername(username);
     const { data } = await supabase.from('users').select('*').eq('username', username).single();
     return data as User | null;
-  }
+  },
 };
 
 // Select repository dynamically based on environment
-export const repository: Repository = isSupabaseConfigured ? supabaseRepository : sqliteRepository;
+export const repository: Repository = isSupabaseConfigured ? supabaseRepository : fsRepository;
