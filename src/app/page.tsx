@@ -1,5 +1,6 @@
 import { getConsolesWithActiveSessionsAction } from '@/app/actions';
 import { ConsoleCard } from '@/components/ConsoleCard';
+import { GhostPaymentCard } from '@/components/GhostPaymentCard';
 import { AlertCircle } from 'lucide-react';
 
 export const revalidate = 0; // Dynamic server component
@@ -25,37 +26,37 @@ export default async function DashboardPage() {
   const activeTvCount = consolesWithSessions.filter(c => c.console.is_active).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Top Floor Control Room Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#0d1017]/90 p-4 sm:p-5 rounded-2xl border border-gray-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-black/60 p-4 sm:p-5 rounded-2xl border border-purple-900/40 shadow-xl backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-gaming font-black text-white tracking-wider flex items-center gap-2">
               <span>GAMING FLOOR</span>
               <span className="text-xl">👻</span>
             </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700/60 font-gaming font-bold">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-700/60 font-gaming font-bold">
               {activeTvCount} TVs ACTIVE
             </span>
           </div>
-          <p className="font-handwriting text-emerald-400 text-lg sm:text-xl mt-0.5">
+          <p className="font-handwriting text-purple-300 text-lg sm:text-xl mt-0.5">
             Tap "+ MATCH" as soon as a FIFA game completes on any TV.
           </p>
         </div>
 
-        <div className="bg-[#07090e] px-3.5 py-2 rounded-xl border border-gray-800 text-xs text-gray-300 font-sans flex items-center gap-4">
+        <div className="bg-black/80 px-3.5 py-2 rounded-xl border border-purple-900/40 text-xs text-zinc-300 font-sans flex items-center gap-4">
           <div>
-            <span className="font-handwriting text-gray-400 text-base">FIFA Match:</span>{' '}
-            <span className="font-gaming font-bold text-emerald-400 text-sm">{settings.fifa_normal_price} {settings.currency}</span>
+            <span className="font-handwriting text-zinc-400 text-base">FIFA Match:</span>{' '}
+            <span className="font-gaming font-bold text-purple-300 text-sm">{settings.fifa_normal_price} {settings.currency}</span>
           </div>
-          <div className="border-l border-gray-800 pl-4">
-            <span className="font-handwriting text-gray-400 text-base">Extra Time:</span>{' '}
+          <div className="border-l border-purple-900/40 pl-4">
+            <span className="font-handwriting text-zinc-400 text-base">Extra Time:</span>{' '}
             <span className="font-gaming font-bold text-amber-400 text-sm">+{settings.fifa_extra_time_price} {settings.currency}</span>
           </div>
         </div>
       </div>
 
-      {/* TVs 3D Cards Adaptive Grid */}
+      {/* TVs Cards Adaptive Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {consolesWithSessions.map((cs) => (
           <ConsoleCard
@@ -64,6 +65,11 @@ export default async function DashboardPage() {
             settings={settings}
           />
         ))}
+      </div>
+
+      {/* Post-Intro Dashboard Floor Payment Card Poster */}
+      <div className="pt-6 border-t border-purple-900/30">
+        <GhostPaymentCard size="md" />
       </div>
     </div>
   );

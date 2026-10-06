@@ -6,7 +6,6 @@ import { GhostCanvas } from '@/components/GhostCanvas';
 import { IntroSplash } from '@/components/IntroSplash';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { MadeByYuna } from '@/components/MadeByYuna';
-import { GhostPaymentCard } from '@/components/GhostPaymentCard';
 
 const gamingFont = Orbitron({
   subsets: ['latin'],
@@ -52,15 +51,12 @@ export default function RootLayout({
           {/* Foreground Content */}
           <div className="relative z-10 flex flex-col min-h-screen">
             <Navbar />
-            <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-16">
+            <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-12">
               {children}
             </main>
 
             {/* Consistent Compact Footer */}
-            <footer className="w-full border-t border-purple-900/30 bg-black/60 backdrop-blur-md py-6 px-4 text-center space-y-4">
-              <div className="max-w-xs mx-auto">
-                <GhostPaymentCard size="sm" />
-              </div>
+            <footer className="w-full border-t border-purple-900/30 bg-black/60 backdrop-blur-md py-6 px-4 text-center">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-zinc-400">
                 <span className="font-gaming font-bold tracking-widest text-purple-300">
                   👻 GHOST GAME ZONE V1
