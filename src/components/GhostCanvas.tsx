@@ -24,16 +24,16 @@ export function GhostCanvas() {
     container.appendChild(renderer.domElement);
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0x0f172a, 1.5);
+    const ambientLight = new THREE.AmbientLight(0x1e1b4b, 1.8);
     scene.add(ambientLight);
 
-    const cyanLight = new THREE.PointLight(0x10b981, 3, 10);
-    cyanLight.position.set(-2, 2, 2);
-    scene.add(cyanLight);
+    const purpleLight = new THREE.PointLight(0xa855f7, 3, 12);
+    purpleLight.position.set(-2, 2, 2);
+    scene.add(purpleLight);
 
-    const blueLight = new THREE.PointLight(0x3b82f6, 2, 10);
-    blueLight.position.set(2, -2, 2);
-    scene.add(blueLight);
+    const fuchsiaLight = new THREE.PointLight(0xd946ef, 2.5, 12);
+    fuchsiaLight.position.set(2, -2, 2);
+    scene.add(fuchsiaLight);
 
     // Ghost Body - Smooth procedural geometry
     const ghostGroup = new THREE.Group();
@@ -41,10 +41,10 @@ export function GhostCanvas() {
     // Head Sphere
     const headGeo = new THREE.SphereGeometry(1.2, 32, 32);
     const ghostMat = new THREE.MeshPhongMaterial({
-      color: 0x064e3b,
-      emissive: 0x022c22,
-      specular: 0x34d399,
-      shininess: 100,
+      color: 0x3b0764,
+      emissive: 0x1e1b4b,
+      specular: 0xc084fc,
+      shininess: 90,
       transparent: true,
       opacity: 0.35,
       wireframe: false,
@@ -55,7 +55,7 @@ export function GhostCanvas() {
 
     // Eyes Glow
     const eyeGeo = new THREE.SphereGeometry(0.18, 16, 16);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xe9d5ff });
 
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
     leftEye.position.set(-0.4, 0.2, 1.05);
@@ -75,23 +75,23 @@ export function GhostCanvas() {
 
     scene.add(ghostGroup);
 
-    // Floating Fog Particles
-    const particlesCount = 60;
+    // Floating Fog / Ember Particles
+    const particlesCount = 70;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particlesCount * 3);
 
     for (let i = 0; i < particlesCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 12;
-      positions[i + 1] = (Math.random() - 0.5) * 12;
+      positions[i] = (Math.random() - 0.5) * 14;
+      positions[i + 1] = (Math.random() - 0.5) * 14;
       positions[i + 2] = (Math.random() - 0.5) * 10;
     }
 
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: 0x10b981,
-      size: 0.08,
+      color: 0xc084fc,
+      size: 0.09,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.45,
     });
 
     const particles = new THREE.Points(particleGeo, particleMat);
@@ -142,10 +142,10 @@ export function GhostCanvas() {
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {/* 3D WebGL Canvas Container */}
-      <div ref={containerRef} className="w-full h-full opacity-40 md:opacity-60" />
+      <div ref={containerRef} className="w-full h-full opacity-40 md:opacity-60 pointer-events-none" />
 
       {/* Atmospheric Radial Dark Gradient */}
-      <div className="absolute inset-0 bg-radial from-transparent via-[#0e1015]/80 to-[#0e1015]" />
+      <div className="absolute inset-0 bg-radial from-transparent via-[var(--bg-primary)]/80 to-[var(--bg-primary)] pointer-events-none" />
     </div>
   );
 }
