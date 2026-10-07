@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Orbitron, Caveat, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
@@ -31,6 +31,19 @@ const sansFont = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Ghost Game Zone 👻 | FIFA Gaming Center',
   description: 'Production gaming center management system for Ghost Game Zone in Ethiopia',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Ghost Game Zone',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#120d21',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -40,6 +53,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`dark ${gamingFont.variable} ${handwritingFont.variable} ${sansFont.variable}`} data-theme="theme-purple">
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans antialiased selection:bg-purple-600 selection:text-white relative overflow-x-hidden">
         <ThemeProvider>
           {/* Intro Splash Experience */}
@@ -67,6 +83,22 @@ export default function RootLayout({
             </footer>
           </div>
         </ThemeProvider>
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('Ghost Game Zone SW registered:', reg.scope);
+                  }).catch(function(err) {
+                    console.log('SW registration failed:', err);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
