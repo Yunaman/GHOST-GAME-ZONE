@@ -8,26 +8,19 @@ import { useRouter } from 'next/navigation';
 export function ClearHistoryButton() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const [confirmInput, setConfirmInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleClearHistory() {
-    if (confirmInput.trim().toUpperCase() !== 'CLEAR HISTORY') {
-      setErrorMsg('Please type "CLEAR HISTORY" to confirm.');
-      return;
-    }
-
     setIsLoading(true);
     setErrorMsg(null);
 
     try {
       const res = await clearTodayHistoryAction();
       if (res.success) {
-        setSuccessMsg(`Successfully cleared ${res.deletedCount} completed sessions from today's history.`);
+        setSuccessMsg(`Cleared ${res.deletedCount} completed sessions.`);
         setIsOpen(false);
-        setConfirmInput('');
         router.refresh();
       } else {
         setErrorMsg(res.error || 'Failed to clear history');
@@ -62,12 +55,11 @@ export function ClearHistoryButton() {
           onClick={() => {
             setIsOpen(true);
             setErrorMsg(null);
-            setConfirmInput('');
           }}
           className="px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 hover:border-rose-600 rounded-xl font-gaming font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md"
         >
           <Trash2 className="w-4 h-4 text-rose-400" />
-          <span>Clear Today's History</span>
+          <span>🗑 CLEAR HISTORY</span>
         </button>
       </div>
 
@@ -80,16 +72,16 @@ export function ClearHistoryButton() {
               </div>
               <div>
                 <h3 className="font-gaming font-black text-lg text-white">
-                  CLEAR TODAY'S HISTORY?
+                  Clear History?
                 </h3>
                 <p className="text-xs text-rose-300 font-sans">
-                  Double Confirmation Required
+                  Remove all completed sessions and their match/payment history?
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-zinc-300 leading-relaxed font-sans bg-black/40 p-3 rounded-xl border border-purple-900/30">
-              This will permanently remove today's completed sessions and their related match/payment history. <strong className="text-emerald-400">Active sessions, consoles, and settings will not be affected.</strong>
+              Active sessions, currently playing customers, TVs/consoles, and settings will <strong className="text-emerald-400">remain untouched</strong>.
             </p>
 
             {errorMsg && (
@@ -97,19 +89,6 @@ export function ClearHistoryButton() {
                 {errorMsg}
               </p>
             )}
-
-            <div className="space-y-2">
-              <label className="block text-xs font-gaming font-bold text-zinc-300">
-                Type <span className="text-rose-400 font-mono">CLEAR HISTORY</span> to confirm:
-              </label>
-              <input
-                type="text"
-                value={confirmInput}
-                onChange={(e) => setConfirmInput(e.target.value)}
-                placeholder="CLEAR HISTORY"
-                className="w-full px-3.5 py-2.5 bg-black/60 border border-rose-800/80 rounded-xl text-white font-mono font-bold text-sm focus:outline-none focus:border-rose-500 uppercase"
-              />
-            </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
@@ -123,7 +102,7 @@ export function ClearHistoryButton() {
               <button
                 type="button"
                 onClick={handleClearHistory}
-                disabled={isLoading || confirmInput.trim().toUpperCase() !== 'CLEAR HISTORY'}
+                disabled={isLoading}
                 className="px-5 py-2.5 ghost-btn-danger font-gaming font-black text-xs rounded-xl flex items-center gap-2 cursor-pointer disabled:opacity-40"
               >
                 {isLoading ? (
@@ -131,7 +110,7 @@ export function ClearHistoryButton() {
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4" />
-                    <span>CLEAR HISTORY 👻</span>
+                    <span>CLEAR HISTORY</span>
                   </>
                 )}
               </button>
