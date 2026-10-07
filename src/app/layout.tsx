@@ -6,6 +6,7 @@ import { GhostCanvas } from '@/components/GhostCanvas';
 import { IntroSplash } from '@/components/IntroSplash';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { MadeByYuna } from '@/components/MadeByYuna';
+import { InstallAppCard } from '@/components/InstallAppCard';
 
 const gamingFont = Orbitron({
   subsets: ['latin'],
@@ -44,6 +45,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -70,6 +73,9 @@ export default function RootLayout({
             <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-12">
               {children}
             </main>
+
+            {/* Install PWA Prompt Card */}
+            <InstallAppCard />
 
             {/* Consistent Compact Footer */}
             <footer className="w-full border-t border-purple-900/30 bg-black/60 backdrop-blur-md py-6 px-4 text-center">

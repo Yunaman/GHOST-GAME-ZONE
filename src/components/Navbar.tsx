@@ -1,19 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Gamepad2, History, BarChart3, Settings, Download, CheckCircle2 } from 'lucide-react';
+import { Gamepad2, History, BarChart3, Settings } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [installSuccess, setInstallSuccess] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
-  // Prefetch main routes on mount
+  // Prefetch routes proactively on mount
   useEffect(() => {
     router.prefetch('/');
     router.prefetch('/history');
@@ -21,56 +19,19 @@ export function Navbar() {
     router.prefetch('/settings');
   }, [router]);
 
-  // PWA beforeinstallprompt handler
+  // Reset pending state on pathname change
   useEffect(() => {
-    // Check if running in standalone mode
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
-      setIsInstalled(true);
-    }
+    setPendingHref(null);
+  }, [pathname]);
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallBanner(true);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setShowInstallBanner(false);
-      setDeferredPrompt(null);
-      setInstallSuccess(true);
-      setTimeout(() => setInstallSuccess(false), 4000);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  async function handleInstallClick() {
-    if (!deferredPrompt) {
-      alert("To install Ghost Game Zone:\n• Android/Chrome: Tap Chrome menu (⋮) -> 'Install app' or 'Add to Home screen'\n• iPhone/Safari: Tap Share (↑) -> 'Add to Home Screen'\n• Desktop: Click the install icon in your browser address bar.");
-      return;
-    }
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
-      setShowInstallBanner(false);
-    }
-    setDeferredPrompt(null);
-  }
-
-  // Instant navigation helper
-  const handleNav = (href: string) => (e: React.MouseEvent) => {
+  const handleNavClick = (href: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     if (pathname === href) return;
-    router.push(href);
+
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
   };
 
   const navItems = [
@@ -81,10 +42,14 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#06070a]/90 backdrop-blur-md border-b border-purple-900/40 px-3 sm:px-4 py-2.5">
+    <header className="sticky top-0 z-40 bg-[#06070a]/90 backdrop-blur-md border-b border-purple-900/40 px-3 sm:px-4 py-2.5 pointer-events-auto">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
         {/* Brand */}
-        <Link href="/" onClick={handleNav('/')} className="flex items-center gap-2 group shrink-0">
+        <Link
+          href="/"
+          onClick={handleNavClick('/')}
+          className="flex items-center gap-2 group shrink-0 pointer-events-auto cursor-pointer"
+        >
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-950/80 border border-purple-700/60 flex items-center justify-center text-purple-300 group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.25)]">
             <span className="text-lg sm:text-xl">👻</span>
           </div>
@@ -100,47 +65,29 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Right Section: PWA Install & Navigation */}
+        {/* Navigation Links */}
         <div className="flex items-center gap-2">
-          {/* PWA Install Button */}
-          {!isInstalled && (
-            <button
-              onClick={handleInstallClick}
-              type="button"
-              className="px-2.5 py-1.5 bg-purple-950/80 hover:bg-purple-900/90 text-purple-300 border border-purple-700/60 rounded-xl text-[11px] sm:text-xs font-gaming font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shrink-0"
-              title="Install Ghost Game Zone App"
-            >
-              <Download className="w-3.5 h-3.5 text-purple-300 animate-pulse" />
-              <span className="hidden md:inline">Install App</span>
-            </button>
-          )}
-
-          {installSuccess && (
-            <span className="text-[11px] text-emerald-400 font-gaming font-bold flex items-center gap-1 bg-emerald-950/80 px-2.5 py-1 rounded-xl border border-emerald-800">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Installed!
-            </span>
-          )}
-
-          {/* Floor Navigation Bar */}
-          <nav className="flex items-center gap-0.5 sm:gap-1 bg-[#0e121a] p-1 sm:p-1.5 rounded-xl border border-purple-900/40 font-gaming text-xs">
+          <nav className="flex items-center gap-0.5 sm:gap-1 bg-[#0e121a] p-1 sm:p-1.5 rounded-xl border border-purple-900/40 font-gaming text-xs pointer-events-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
+              const isTargeting = pendingHref === item.href && isPending;
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={handleNav(item.href)}
+                  onClick={handleNavClick(item.href)}
                   onMouseEnter={() => router.prefetch(item.href)}
-                  className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-purple-900/60 text-white font-bold border border-purple-700/60 shadow-md'
+                  onTouchStart={() => router.prefetch(item.href)}
+                  className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation select-none ${
+                    isActive || isTargeting
+                      ? 'bg-purple-900/60 text-white font-bold border border-purple-700/60 shadow-md opacity-100 scale-[1.02]'
                       : 'text-zinc-400 hover:text-white hover:bg-purple-950/40'
                   }`}
                   title={item.label}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${item.color}`} />
+                  <Icon className={`w-3.5 h-3.5 ${item.color} ${isTargeting ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               );

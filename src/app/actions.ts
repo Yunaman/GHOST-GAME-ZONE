@@ -140,14 +140,26 @@ export async function updateConsoleNameAction(consoleId: string, name: string) {
   }
 }
 
-export async function clearTodayHistoryAction() {
+export async function clearCompletedHistoryAction() {
   try {
-    const res = await repository.clearTodayHistory();
+    const res = await repository.clearCompletedHistory();
     revalidatePath('/');
     revalidatePath('/history');
     revalidatePath('/reports');
     return { success: true, deletedCount: res.deletedCount };
   } catch (error: any) {
-    return { success: false, error: error?.message || 'Failed to clear today history' };
+    return { success: false, error: error?.message || 'Failed to clear history' };
+  }
+}
+
+export async function resetReportsAction() {
+  try {
+    const res = await repository.resetReports();
+    revalidatePath('/');
+    revalidatePath('/history');
+    revalidatePath('/reports');
+    return { success: true, deletedCount: res.deletedCount };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Failed to reset reports' };
   }
 }

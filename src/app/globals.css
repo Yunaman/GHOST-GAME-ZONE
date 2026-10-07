@@ -56,8 +56,17 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent iOS auto-zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 /* Custom Floating Keyframe Animation for YUNA */

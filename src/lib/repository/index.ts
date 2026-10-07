@@ -28,7 +28,9 @@ export interface Repository {
   finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session>;
   createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy?: string): Promise<Adjustment>;
   getSessionsHistory(limit?: number): Promise<Session[]>;
+  clearCompletedHistory(): Promise<{ deletedCount: number }>;
   clearTodayHistory(): Promise<{ deletedCount: number }>;
+  resetReports(): Promise<{ deletedCount: number }>;
   getAnalyticsSummary(): Promise<AnalyticsSummary>;
   getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
@@ -380,15 +382,11 @@ const fsRepository: Repository = {
     return result;
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
+  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
     const db = loadDb();
-    const todayStr = new Date().toISOString().split('T')[0];
 
-    const targetSessions = db.sessions.filter(s => {
-      if (s.status !== 'FINISHED') return false;
-      const dateStr = s.finished_at || s.created_at;
-      return dateStr.startsWith(todayStr);
-    });
+    // Target all completed/finished sessions regardless of date
+    const targetSessions = db.sessions.filter(s => s.status === 'FINISHED');
 
     const targetIds = new Set(targetSessions.map(s => s.id));
     if (targetIds.size === 0) return { deletedCount: 0 };
@@ -402,7 +400,16 @@ const fsRepository: Repository = {
     return { deletedCount: targetIds.size };
   },
 
+  async clearTodayHistory(): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory();
+  },
+
+  async resetReports(): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory();
+  },
+
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+    const db = loadDb();
     const sessions = await this.getSessionsHistory(1000);
     const finishedSessions = sessions.filter((s) => s.status === 'FINISHED');
 
@@ -433,6 +440,11 @@ const fsRepository: Repository = {
 
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
+
+    const dbConsoles = db.consoles || [];
+    for (const c of dbConsoles) {
+      revByConsole[c.name] = 0;
+    }
 
     for (const sess of finishedSessions) {
       const amt = sess.total_amount;
@@ -838,25 +850,19 @@ const supabaseRepository: Repository = {
     return result;
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    if (!supabase) return fsRepository.clearTodayHistory();
-    const todayStr = new Date().toISOString().split('T')[0];
+  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
+    if (!supabase) return fsRepository.clearCompletedHistory();
 
     const { data: finishedSessions, error } = await supabase
       .from('sessions')
-      .select('id, created_at, finished_at')
+      .select('id')
       .eq('status', 'FINISHED');
 
-    if (error || !finishedSessions) return { deletedCount: 0 };
+    if (error || !finishedSessions || finishedSessions.length === 0) {
+      return { deletedCount: 0 };
+    }
 
-    const targetIds = finishedSessions
-      .filter(s => {
-        const dateStr = s.finished_at || s.created_at;
-        return dateStr.startsWith(todayStr);
-      })
-      .map(s => s.id);
-
-    if (targetIds.length === 0) return { deletedCount: 0 };
+    const targetIds = finishedSessions.map(s => s.id);
 
     await supabase.from('matches').delete().in('session_id', targetIds);
     await supabase.from('payments').delete().in('session_id', targetIds);
@@ -864,6 +870,16 @@ const supabaseRepository: Repository = {
     await supabase.from('sessions').delete().in('id', targetIds);
 
     return { deletedCount: targetIds.length };
+  },
+
+  async clearTodayHistory(): Promise<{ deletedCount: number }> {
+    if (!supabase) return fsRepository.clearCompletedHistory();
+    return this.clearCompletedHistory();
+  },
+
+  async resetReports(): Promise<{ deletedCount: number }> {
+    if (!supabase) return fsRepository.resetReports();
+    return this.clearCompletedHistory();
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
@@ -896,6 +912,11 @@ const supabaseRepository: Repository = {
 
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
+
+    const dbConsoles = await this.getConsoles();
+    for (const c of dbConsoles) {
+      revByConsole[c.name] = 0;
+    }
 
     for (const sess of finishedSessions) {
       const amt = sess.total_amount;
