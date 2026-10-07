@@ -39,3 +39,10 @@
  GET /compiled-global.css 404 in 115ms (next.js: 19ms, application-code: 96ms)
  GET /history 200 in 1922ms (next.js: 32ms, application-code: 1890ms)
  GET /reports 200 in 1977ms (next.js: 55ms, application-code: 1923ms)
+[Server HMR] Update failed, full reload needed: SyntaxError: Identifier 'consolesList' has already been declared
+    at eval (<anonymous>)
+✓ Compiled in 371ms
+✓ Compiled in 165ms
+✓ Compiled in 58ms
+✓ Compiled in 48ms
+✓ Compiled in 49ms

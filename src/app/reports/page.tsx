@@ -11,6 +11,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
+import { ResetReportsButton } from '@/components/ResetReportsButton';
 
 export const revalidate = 0;
 
@@ -22,7 +23,7 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between ghost-glass-card p-4 sm:p-5 border border-purple-900/40">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ghost-glass-card p-4 sm:p-5 border border-purple-900/40">
         <div>
           <h1 className="text-xl sm:text-2xl font-gaming font-black text-white flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-purple-400" />
@@ -32,6 +33,10 @@ export default async function ReportsPage() {
           <p className="font-handwriting text-purple-300 text-lg sm:text-xl mt-0.5">
             Real-time revenue metrics and gaming floor analytics
           </p>
+        </div>
+
+        <div>
+          <ResetReportsButton />
         </div>
       </div>
 
