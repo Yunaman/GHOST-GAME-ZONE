@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --bg-primary: #08060f;
@@ -51,15 +53,11 @@
   --gold-accent: #facc15;
 }
 
-@layer base {
-  body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-gaming), sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Custom Floating Keyframe Animation for YUNA */
@@ -78,7 +76,15 @@
   animation: ghostFloat 3.5s ease-in-out infinite;
 }
 
-/* High-Contrast Tactile Buttons */
+/* High-Contrast Tactile Buttons & Ghost Glass Cards */
+.ghost-glass-card {
+  background: rgba(18, 13, 33, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+}
+
 .paper-card {
   background-color: var(--bg-card);
   border: 2px solid var(--border-color);

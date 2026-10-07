@@ -3,6 +3,7 @@ import { repository } from '@/lib/repository';
 import { formatCurrency } from '@/lib/utils';
 import { History, Tv, Calendar, ChevronRight, Zap } from 'lucide-react';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
+import { ClearHistoryButton } from '@/components/ClearHistoryButton';
 
 export const revalidate = 0;
 
@@ -13,7 +14,7 @@ export default async function HistoryPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between ghost-glass-card p-4 sm:p-5 border border-purple-900/40">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ghost-glass-card p-4 sm:p-5 border border-purple-900/40">
         <div>
           <h1 className="text-xl sm:text-2xl font-gaming font-black text-white flex items-center gap-2">
             <History className="w-6 h-6 text-amber-400" />
@@ -25,8 +26,11 @@ export default async function HistoryPage() {
           </p>
         </div>
 
-        <div className="text-right font-gaming text-xs text-amber-300 font-bold bg-amber-950/60 px-3.5 py-2 rounded-xl border border-amber-800/60">
-          {sessions.length} Recorded Sessions
+        <div className="flex items-center gap-3">
+          <ClearHistoryButton />
+          <div className="text-right font-gaming text-xs text-amber-300 font-bold bg-amber-950/60 px-3.5 py-2 rounded-xl border border-amber-800/60">
+            {sessions.length} Recorded Sessions
+          </div>
         </div>
       </div>
 

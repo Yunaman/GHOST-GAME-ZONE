@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Session, PaymentMethod } from '@/types';
 import { finishSessionAction } from '@/app/actions';
 import { formatCurrency } from '@/lib/utils';
@@ -10,32 +10,38 @@ interface FinishSessionModalProps {
   session: Session;
   currency: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function FinishSessionModal({ session, currency, onClose }: FinishSessionModalProps) {
+export function FinishSessionModal({ session, currency, onClose, onSuccess }: FinishSessionModalProps) {
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [reference, setReference] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
   const matchCount = session.matches?.length || 0;
   const extraTimeCount = session.matches?.filter((m) => m.extra_time).length || 0;
 
   async function handleFinish() {
-    setIsSubmitting(true);
     setError(null);
-    try {
-      const res = await finishSessionAction(session.id, method, reference.trim());
-      if (res.success) {
-        onClose();
-      } else {
-        setError(res.error || 'Failed to complete session payment');
-      }
-    } catch (err: any) {
-      setError(err?.message || 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
+
+    // INSTANT UI RESPONSE (<10ms)
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      onClose();
     }
+
+    startTransition(async () => {
+      try {
+        const res = await finishSessionAction(session.id, method, reference.trim());
+        if (!res.success) {
+          console.error('Background finish session error:', res.error);
+        }
+      } catch (err: any) {
+        console.error('Background finish session exception:', err);
+      }
+    });
   }
 
   return (
@@ -156,20 +162,10 @@ export function FinishSessionModal({ session, currency, onClose }: FinishSession
           <button
             type="button"
             onClick={handleFinish}
-            disabled={isSubmitting}
-            className="w-full py-4 ghost-btn-primary font-gaming font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+            className="w-full py-4 ghost-btn-primary font-gaming font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin text-black" />
-                <span className="text-black">RECORDING...</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-6 h-6 text-black" />
-                <span className="text-black">CONFIRM & CLOSE SESSION 👻</span>
-              </>
-            )}
+            <Check className="w-6 h-6 text-black" />
+            <span className="text-black">CONFIRM & CLOSE SESSION 👻</span>
           </button>
         </div>
       </div>

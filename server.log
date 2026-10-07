@@ -1,13 +1,25 @@
 
-> ghost-game-zone@0.1.0 start
-> next start
+> ghost-game-zone@0.1.0 dev
+> postcss src/app/globals.css -o src/app/compiled-global.css && next dev
 
-▲ Next.js 16.3.8
-- Local:         http://localhost:3000
-- Network:       http://192.168.0.2:3000
-✓ Ready in 247ms
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.3.8 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.0.2:3001
+- Environments: .env.local, .env
+✓ Ready in 606ms
 ✓ Running next.config.ts took 44ms
-⨯ Error: The destination stream closed early.
-    at ignore-listed frames {
-  digest: '2513548569'
-}
+
+○ Compiling / ...
+ GET / 200 in 8.4s (next.js: 5.1s, application-code: 3.3s)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+ GET /history 200 in 6.0s (next.js: 1083ms, application-code: 4.9s)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+ GET / 200 in 1818ms (next.js: 7ms, application-code: 1811ms)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+ GET /history 200 in 5.6s (next.js: 5ms, application-code: 5.6s)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
+[browser] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. (src/components/GhostCanvas.tsx:102:17)
