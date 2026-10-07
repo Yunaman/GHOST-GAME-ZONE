@@ -109,6 +109,26 @@ async function runTests() {
     throw new Error('Analytics totals mismatch!');
   }
 
+  console.log('\n[TEST 10] Testing Clear Today History...');
+  // Start an active session on TV 2 to ensure it is protected
+  const activeSessTv2 = await repository.startSession(tv2.id, 'ActivePlayer');
+  await repository.addMatch(activeSessTv2.id);
+
+  const clearRes = await repository.clearTodayHistory();
+  console.log(`✓ Clear Today History result -> Deleted ${clearRes.deletedCount} completed sessions.`);
+
+  // Verify finished session on TV 1 was deleted from history
+  const historyAfterClear = await repository.getSessionsHistory();
+  const finishedInHistory = historyAfterClear.find(s => s.id === session1.id);
+  if (finishedInHistory) throw new Error('Clear Today History failed: finished session still present in history!');
+
+  // Verify active session on TV 2 was NOT deleted and TV 2 is still active
+  const activeSessionCheck = await repository.getActiveSessionByConsoleId(tv2.id);
+  if (!activeSessionCheck || activeSessionCheck.id !== activeSessTv2.id) {
+    throw new Error('Clear Today History Error: ACTIVE session on TV 2 was deleted!');
+  }
+  console.log(`✓ Active session on TV 2 protected! Total amount: ${activeSessionCheck.total_amount} ETB`);
+
   console.log('\n----------------------------------------------------');
   console.log('ALL PRODUCTION WORKFLOW VERIFICATION TESTS PASSED SUCCESSFULLY!');
   console.log('----------------------------------------------------');

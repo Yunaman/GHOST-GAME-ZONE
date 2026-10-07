@@ -139,3 +139,15 @@ export async function updateConsoleNameAction(consoleId: string, name: string) {
     return { success: false, error: error?.message || 'Failed to update console name' };
   }
 }
+
+export async function clearTodayHistoryAction() {
+  try {
+    const res = await repository.clearTodayHistory();
+    revalidatePath('/');
+    revalidatePath('/history');
+    revalidatePath('/reports');
+    return { success: true, deletedCount: res.deletedCount };
+  } catch (error: any) {
+    return { success: false, error: error?.message || 'Failed to clear today history' };
+  }
+}

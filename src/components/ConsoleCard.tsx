@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Console, Session, Settings } from '@/types';
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { Console, Session, Settings, Match } from '@/types';
 import {
   startSessionAction,
   addMatchAction,
@@ -29,84 +29,217 @@ interface ConsoleCardProps {
     active_session?: Session | null;
   };
   settings: Settings;
+  onSessionFinished?: () => void;
 }
 
-export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
-  const { console: tv, active_session: session } = consoleState;
-  const isPlaying = tv.status === 'PLAYING' && !!session;
+export function ConsoleCard({ consoleState, settings, onSessionFinished }: ConsoleCardProps) {
+  const { console: initialTv, active_session: initialSession } = consoleState;
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Local optimistic state for instant (<10ms) tap responses
+  const [currentTv, setCurrentTv] = useState<Console>(initialTv);
+  const [currentSession, setCurrentSession] = useState<Session | null>(initialSession || null);
+
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showMatchList, setShowMatchList] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
-  const matches = session?.matches || [];
+  // Debounce guard to prevent rapid double tap duplicates
+  const lastTapTimeRef = useRef<number>(0);
+
+  // Sync props when parent re-renders unless an optimistic action is pending
+  useEffect(() => {
+    setCurrentTv(initialTv);
+    setCurrentSession(initialSession || null);
+  }, [initialTv, initialSession]);
+
+  const isPlaying = currentTv.status === 'PLAYING' && !!currentSession;
+  const matches = currentSession?.matches || [];
   const matchCount = matches.length;
   const currency = settings?.currency || 'ETB';
+  const fifaNormalPrice = settings?.fifa_normal_price ?? 15;
+  const fifaExtraTimePrice = settings?.fifa_extra_time_price ?? 5;
 
+  // --- INSTANT OPTIMISTIC ACTION 1: START SESSION ---
   async function handleStartSession() {
-    setIsLoading(true);
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 200) return;
+    lastTapTimeRef.current = now;
+
     setErrorMsg(null);
-    try {
-      const res = await startSessionAction(tv.id);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Failed to start session');
+    const tempSessionId = cryptoRandomUUID();
+    const startTime = new Date().toISOString();
+
+    const optimisticSession: Session = {
+      id: tempSessionId,
+      console_id: currentTv.id,
+      console_name: currentTv.name,
+      game_type: 'FIFA',
+      billing_type: 'MATCH_BASED',
+      status: 'ACTIVE',
+      started_at: startTime,
+      total_amount: 0,
+      payment_status: 'UNPAID',
+      created_by: 'Staff',
+      created_at: startTime,
+      matches: [],
+    };
+
+    // INSTANT UI UPDATE
+    setCurrentTv((prev) => ({ ...prev, status: 'PLAYING' }));
+    setCurrentSession(optimisticSession);
+
+    startTransition(async () => {
+      try {
+        const res = await startSessionAction(currentTv.id);
+        if (res.success && res.data) {
+          setCurrentSession(res.data);
+        } else {
+          setErrorMsg(res.error || 'Failed to start session');
+          setCurrentTv(initialTv);
+          setCurrentSession(initialSession || null);
+        }
+      } catch (err: any) {
+        setErrorMsg(err?.message || 'Error starting session');
+        setCurrentTv(initialTv);
+        setCurrentSession(initialSession || null);
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Error starting session');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
+  // --- INSTANT OPTIMISTIC ACTION 2: ADD MATCH ---
   async function handleAddMatch() {
-    if (!session) return;
-    setIsLoading(true);
+    if (!currentSession) return;
+    const now = Date.now();
+    if (now - lastTapTimeRef.current < 150) return; // Prevent double tap <150ms
+    lastTapTimeRef.current = now;
+
     setErrorMsg(null);
-    const key = cryptoRandomUUID();
-    try {
-      const res = await addMatchAction(session.id, key);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Failed to add match');
+    const idempotencyKey = cryptoRandomUUID();
+    const newMatchNum = (currentSession.matches?.length || 0) + 1;
+    const matchId = cryptoRandomUUID();
+
+    const newMatch: Match = {
+      id: matchId,
+      session_id: currentSession.id,
+      match_number: newMatchNum,
+      base_price: fifaNormalPrice,
+      extra_time: false,
+      extra_time_price: 0,
+      total_price: fifaNormalPrice,
+      client_idempotency_key: idempotencyKey,
+      created_at: new Date().toISOString(),
+    };
+
+    const previousSession = currentSession;
+    const updatedMatches = [...(currentSession.matches || []), newMatch];
+    const updatedTotal = updatedMatches.reduce((acc, m) => acc + m.total_price, 0);
+
+    // INSTANT UI UPDATE (<10ms)
+    setCurrentSession({
+      ...currentSession,
+      matches: updatedMatches,
+      total_amount: updatedTotal,
+    });
+
+    startTransition(async () => {
+      try {
+        const res = await addMatchAction(previousSession.id, idempotencyKey);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Failed to add match');
+          setCurrentSession(previousSession); // Rollback
+        }
+      } catch (err: any) {
+        setErrorMsg(err?.message || 'Error adding match');
+        setCurrentSession(previousSession); // Rollback
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Error adding match');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
+  // --- INSTANT OPTIMISTIC ACTION 3: TOGGLE EXTRA TIME ---
   async function handleToggleExtraTime(matchId: string) {
-    if (!session) return;
-    setIsLoading(true);
+    if (!currentSession) return;
     setErrorMsg(null);
-    try {
-      const res = await toggleMatchExtraTimeAction(session.id, matchId);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Failed to toggle extra time');
+
+    const targetMatch = currentSession.matches?.find((m) => m.id === matchId);
+    if (!targetMatch) return;
+
+    const previousSession = currentSession;
+    const isAdding = !targetMatch.extra_time;
+    const extraPrice = isAdding ? fifaExtraTimePrice : 0;
+    const newTotalPrice = targetMatch.base_price + extraPrice;
+
+    const updatedMatches = (currentSession.matches || []).map((m) =>
+      m.id === matchId
+        ? {
+            ...m,
+            extra_time: isAdding,
+            extra_time_price: extraPrice,
+            total_price: newTotalPrice,
+          }
+        : m
+    );
+
+    const updatedTotal = updatedMatches.reduce((acc, m) => acc + m.total_price, 0);
+
+    // INSTANT UI UPDATE (<10ms)
+    setCurrentSession({
+      ...currentSession,
+      matches: updatedMatches,
+      total_amount: updatedTotal,
+    });
+
+    startTransition(async () => {
+      try {
+        const res = await toggleMatchExtraTimeAction(previousSession.id, matchId);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Failed to toggle extra time');
+          setCurrentSession(previousSession); // Rollback
+        }
+      } catch (err: any) {
+        setErrorMsg(err?.message || 'Error toggling extra time');
+        setCurrentSession(previousSession); // Rollback
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Error toggling extra time');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   }
 
+  // --- INSTANT OPTIMISTIC ACTION 4: UNDO LAST MATCH ---
   async function handleUndoLastMatch() {
-    if (!session) return;
+    if (!currentSession || !currentSession.matches || currentSession.matches.length === 0) return;
     if (!confirm('Undo / remove the last recorded match?')) return;
-    setIsLoading(true);
+
     setErrorMsg(null);
-    try {
-      const res = await undoLastMatchAction(session.id);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Failed to undo match');
+    const previousSession = currentSession;
+    const updatedMatches = currentSession.matches.slice(0, -1);
+    const updatedTotal = updatedMatches.reduce((acc, m) => acc + m.total_price, 0);
+
+    // INSTANT UI UPDATE (<10ms)
+    setCurrentSession({
+      ...currentSession,
+      matches: updatedMatches,
+      total_amount: updatedTotal,
+    });
+
+    startTransition(async () => {
+      try {
+        const res = await undoLastMatchAction(previousSession.id);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Failed to undo match');
+          setCurrentSession(previousSession); // Rollback
+        }
+      } catch (err: any) {
+        setErrorMsg(err?.message || 'Error undoing match');
+        setCurrentSession(previousSession); // Rollback
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Error undoing match');
-    } finally {
-      setIsLoading(false);
-    }
+    });
+  }
+
+  // --- INSTANT OPTIMISTIC ACTION 5: FINISH SESSION OPTIMISTIC CALLBACK ---
+  function handleSessionFinishedOptimistic() {
+    setShowFinishModal(false);
+    setCurrentTv((prev) => ({ ...prev, status: 'AVAILABLE' }));
+    setCurrentSession(null);
+    if (onSessionFinished) onSessionFinished();
   }
 
   return (
@@ -127,7 +260,7 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
               </div>
               <div>
                 <h2 className="font-gaming font-black text-lg text-white tracking-wide flex items-center gap-1.5">
-                  <span>{tv.name}</span>
+                  <span>{currentTv.name}</span>
                   <span className="text-xs text-purple-400">👻</span>
                 </h2>
                 <span className="font-handwriting text-purple-300 text-base leading-none block">
@@ -170,17 +303,10 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                 <button
                   type="button"
                   onClick={handleStartSession}
-                  disabled={isLoading}
-                  className="w-full py-4 ghost-btn-primary font-gaming font-black text-base rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                  className="w-full py-4 ghost-btn-primary font-gaming font-black text-base rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
                 >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 fill-current" />
-                      <span className="tracking-wide font-black">START FIFA SESSION 👻</span>
-                    </>
-                  )}
+                  <Play className="w-5 h-5 fill-current" />
+                  <span className="tracking-wide font-black">START FIFA SESSION 👻</span>
                 </button>
               </div>
             ) : (
@@ -202,7 +328,7 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                       current total
                     </div>
                     <div className="text-3xl font-gaming font-black text-purple-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.4)] mt-1">
-                      {formatCurrency(session.total_amount, currency)}
+                      {formatCurrency(currentSession?.total_amount || 0, currency)}
                     </div>
                   </div>
                 </div>
@@ -211,19 +337,12 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                 <button
                   type="button"
                   onClick={handleAddMatch}
-                  disabled={isLoading}
-                  className="w-full py-5 paper-btn-match font-gaming text-xl flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
+                  className="w-full py-5 paper-btn-match font-gaming text-xl flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98]"
                 >
-                  {isLoading ? (
-                    <Loader2 className="w-7 h-7 animate-spin" />
-                  ) : (
-                    <>
-                      <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold">
-                        <Plus className="w-6 h-6 stroke-[3]" />
-                      </div>
-                      <span>+ MATCH ({settings.fifa_normal_price} {currency}) 👻</span>
-                    </>
-                  )}
+                  <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center font-bold">
+                    <Plus className="w-6 h-6 stroke-[3]" />
+                  </div>
+                  <span>+ MATCH ({fifaNormalPrice} {currency}) 👻</span>
                 </button>
 
                 {/* MATCH BREAKDOWN LOG */}
@@ -277,7 +396,6 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                               <button
                                 type="button"
                                 onClick={() => handleToggleExtraTime(m.id)}
-                                disabled={isLoading}
                                 className={`px-2.5 py-1 rounded text-[11px] font-sans font-bold cursor-pointer transition-all ${
                                   m.extra_time
                                     ? 'bg-amber-600 text-white border border-amber-400 shadow-sm'
@@ -301,7 +419,6 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                     <button
                       type="button"
                       onClick={handleUndoLastMatch}
-                      disabled={isLoading}
                       className="px-3 py-2 bg-zinc-900 hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-zinc-800 hover:border-rose-800 rounded-lg text-xs font-sans font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
@@ -312,7 +429,6 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
                   <button
                     type="button"
                     onClick={() => setShowFinishModal(true)}
-                    disabled={isLoading}
                     className="ml-auto px-4 py-2.5 ghost-btn-danger font-gaming font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
@@ -326,11 +442,12 @@ export function ConsoleCard({ consoleState, settings }: ConsoleCardProps) {
       </div>
 
       {/* FINISH MODAL */}
-      {showFinishModal && session && (
+      {showFinishModal && currentSession && (
         <FinishSessionModal
-          session={session}
+          session={currentSession}
           currency={currency}
           onClose={() => setShowFinishModal(false)}
+          onSuccess={handleSessionFinishedOptimistic}
         />
       )}
     </>

@@ -28,6 +28,7 @@ export interface Repository {
   finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session>;
   createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy?: string): Promise<Adjustment>;
   getSessionsHistory(limit?: number): Promise<Session[]>;
+  clearTodayHistory(): Promise<{ deletedCount: number }>;
   getAnalyticsSummary(): Promise<AnalyticsSummary>;
   getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
@@ -377,6 +378,28 @@ const fsRepository: Repository = {
       if (sess) result.push(sess);
     }
     return result;
+  },
+
+  async clearTodayHistory(): Promise<{ deletedCount: number }> {
+    const db = loadDb();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const targetSessions = db.sessions.filter(s => {
+      if (s.status !== 'FINISHED') return false;
+      const dateStr = s.finished_at || s.created_at;
+      return dateStr.startsWith(todayStr);
+    });
+
+    const targetIds = new Set(targetSessions.map(s => s.id));
+    if (targetIds.size === 0) return { deletedCount: 0 };
+
+    db.matches = db.matches.filter(m => !targetIds.has(m.session_id));
+    db.payments = db.payments.filter(p => !targetIds.has(p.session_id));
+    db.adjustments = db.adjustments.filter(a => !targetIds.has(a.session_id));
+    db.sessions = db.sessions.filter(s => !targetIds.has(s.id));
+
+    saveDb(db);
+    return { deletedCount: targetIds.size };
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
@@ -813,6 +836,34 @@ const supabaseRepository: Repository = {
       if (sess) result.push(sess);
     }
     return result;
+  },
+
+  async clearTodayHistory(): Promise<{ deletedCount: number }> {
+    if (!supabase) return fsRepository.clearTodayHistory();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const { data: finishedSessions, error } = await supabase
+      .from('sessions')
+      .select('id, created_at, finished_at')
+      .eq('status', 'FINISHED');
+
+    if (error || !finishedSessions) return { deletedCount: 0 };
+
+    const targetIds = finishedSessions
+      .filter(s => {
+        const dateStr = s.finished_at || s.created_at;
+        return dateStr.startsWith(todayStr);
+      })
+      .map(s => s.id);
+
+    if (targetIds.length === 0) return { deletedCount: 0 };
+
+    await supabase.from('matches').delete().in('session_id', targetIds);
+    await supabase.from('payments').delete().in('session_id', targetIds);
+    await supabase.from('adjustments').delete().in('session_id', targetIds);
+    await supabase.from('sessions').delete().in('id', targetIds);
+
+    return { deletedCount: targetIds.length };
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
