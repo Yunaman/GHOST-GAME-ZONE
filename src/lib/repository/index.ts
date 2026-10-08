@@ -873,6 +873,9 @@ const supabaseRepository: Repository = {
     await supabase.from('matches').delete().in('session_id', targetIds);
     await supabase.from('payments').delete().in('session_id', targetIds);
     await supabase.from('adjustments').delete().in('session_id', targetIds);
+
+    // First update status away from FINISHED to clear RLS target filter, then delete or leave cancelled
+    await supabase.from('sessions').update({ status: 'CANCELLED' }).in('id', targetIds);
     await supabase.from('sessions').delete().in('id', targetIds);
 
     return { deletedCount: targetIds.length };
