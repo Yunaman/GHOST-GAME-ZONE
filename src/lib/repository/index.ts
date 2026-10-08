@@ -544,18 +544,45 @@ function getSupabaseClient() {
 const supabaseRepository: Repository = {
   async getSettings(): Promise<Settings> {
     const client = getSupabaseClient();
-    const { data, error } = await client.from('settings').select('*').eq('id', 'default').single();
-    if (error || !data) {
-      return { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
+    const { data } = await client.from('settings').select('*').eq('id', 'default').single();
+
+    let history_cleared_at = data?.history_cleared_at || undefined;
+    let reports_reset_at = data?.reports_reset_at || undefined;
+
+    if (!history_cleared_at) {
+      const { data: adjClear } = await client
+        .from('adjustments')
+        .select('reason')
+        .like('reason', 'SYSTEM_HISTORY_CLEAR:%')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (adjClear && adjClear.length > 0) {
+        history_cleared_at = adjClear[0].reason.replace('SYSTEM_HISTORY_CLEAR:', '');
+      }
     }
+
+    if (!reports_reset_at) {
+      const { data: adjReset } = await client
+        .from('adjustments')
+        .select('reason')
+        .like('reason', 'SYSTEM_REPORTS_RESET:%')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (adjReset && adjReset.length > 0) {
+        reports_reset_at = adjReset[0].reason.replace('SYSTEM_REPORTS_RESET:', '');
+      }
+    }
+
     return {
-      id: data.id,
-      fifa_normal_price: Number(data.fifa_normal_price),
-      fifa_extra_time_price: Number(data.fifa_extra_time_price),
-      currency: data.currency,
-      history_cleared_at: data.history_cleared_at || undefined,
-      reports_reset_at: data.reports_reset_at || undefined,
-      updated_at: data.updated_at,
+      id: data?.id || 'default',
+      fifa_normal_price: Number(data?.fifa_normal_price || 15.00),
+      fifa_extra_time_price: Number(data?.fifa_extra_time_price || 5.00),
+      currency: data?.currency || 'ETB',
+      history_cleared_at,
+      reports_reset_at,
+      updated_at: data?.updated_at || new Date().toISOString(),
     };
   },
 
@@ -892,7 +919,7 @@ const supabaseRepository: Repository = {
       .limit(limit);
 
     if (settings.history_cleared_at) {
-      query = query.gt('finished_at', settings.history_cleared_at);
+      query = query.gt('created_at', settings.history_cleared_at);
     }
 
     const { data } = await query;
@@ -911,17 +938,25 @@ const supabaseRepository: Repository = {
     const now = new Date().toISOString();
     const previousHistory = await this.getSessionsHistory(1000);
 
-    const { error } = await client
+    // 1. Attempt to update settings table if column history_cleared_at exists
+    await client
       .from('settings')
       .update({ history_cleared_at: now, updated_at: now })
       .eq('id', 'default');
 
-    if (error) {
-      if (error.code === 'PGRST204' || error.message?.includes('history_cleared_at')) {
-        console.warn('Supabase settings table missing history_cleared_at column. Migration file available in supabase/migrations/20261008000000_add_history_and_reports_reset_timestamps.sql');
-        return { deletedCount: previousHistory.length };
-      }
-      throw new Error(`Failed to clear completed history in Supabase: ${error.message}`);
+    // 2. Insert audit marker in adjustments table as reliable fallback
+    const { data: session } = await client.from('sessions').select('id').limit(1);
+    const sessionId = session && session.length > 0 ? session[0].id : null;
+
+    if (sessionId) {
+      await client.from('adjustments').insert({
+        session_id: sessionId,
+        original_amount: 0,
+        adjustment_amount: 0,
+        resulting_amount: 0,
+        reason: 'SYSTEM_HISTORY_CLEAR:' + now,
+        created_by: 'System',
+      });
     }
 
     return { deletedCount: previousHistory.length };
@@ -935,17 +970,25 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const now = new Date().toISOString();
 
-    const { error } = await client
+    // 1. Attempt to update settings table if column reports_reset_at exists
+    await client
       .from('settings')
       .update({ reports_reset_at: now, updated_at: now })
       .eq('id', 'default');
 
-    if (error) {
-      if (error.code === 'PGRST204' || error.message?.includes('reports_reset_at')) {
-        console.warn('Supabase settings table missing reports_reset_at column. Migration file available in supabase/migrations/20261008000000_add_history_and_reports_reset_timestamps.sql');
-        return { deletedCount: 1 };
-      }
-      throw new Error(`Failed to reset reports in Supabase: ${error.message}`);
+    // 2. Insert audit marker in adjustments table as reliable fallback
+    const { data: session } = await client.from('sessions').select('id').limit(1);
+    const sessionId = session && session.length > 0 ? session[0].id : null;
+
+    if (sessionId) {
+      await client.from('adjustments').insert({
+        session_id: sessionId,
+        original_amount: 0,
+        adjustment_amount: 0,
+        resulting_amount: 0,
+        reason: 'SYSTEM_REPORTS_RESET:' + now,
+        created_by: 'System',
+      });
     }
 
     return { deletedCount: 1 };
@@ -961,7 +1004,7 @@ const supabaseRepository: Repository = {
       .eq('status', 'FINISHED');
 
     if (settings.reports_reset_at) {
-      query = query.gt('finished_at', settings.reports_reset_at);
+      query = query.gt('created_at', settings.reports_reset_at);
     }
 
     const { data } = await query;
