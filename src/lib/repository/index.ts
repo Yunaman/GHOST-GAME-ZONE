@@ -370,7 +370,8 @@ const fsRepository: Repository = {
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
     const db = loadDb();
-    const sorted = [...db.sessions]
+    const sorted = db.sessions
+      .filter((s) => s.status === 'FINISHED')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, limit);
 
@@ -839,7 +840,12 @@ const supabaseRepository: Repository = {
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
     if (!supabase) return fsRepository.getSessionsHistory(limit);
-    const { data } = await supabase.from('sessions').select('id').order('created_at', { ascending: false }).limit(limit);
+    const { data } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('status', 'FINISHED')
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (!data) return [];
 
     const result: Session[] = [];
