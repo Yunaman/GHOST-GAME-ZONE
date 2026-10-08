@@ -1,6 +1,7 @@
 import { getConsolesWithActiveSessionsAction } from '@/app/actions';
 import { ConsoleCard } from '@/components/ConsoleCard';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
+import { InstallAppCard } from '@/components/InstallAppCard';
 import { AlertCircle } from 'lucide-react';
 
 export const revalidate = 0; // Dynamic server component
@@ -66,6 +67,9 @@ export default async function DashboardPage() {
           />
         ))}
       </div>
+
+      {/* Post-Intro Install PWA Prompt Card */}
+      <InstallAppCard />
 
       {/* Post-Intro Dashboard Floor Payment Card Poster */}
       <div className="pt-6 border-t border-purple-900/30">

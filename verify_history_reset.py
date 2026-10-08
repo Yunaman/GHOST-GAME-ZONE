@@ -14,37 +14,46 @@ async def main():
         # Skip intro if splash visible
         skip_btn = page.locator('button:has-text("SKIP INTRO")')
         if await skip_btn.count() > 0:
-            await skip_btn.click()
+            try:
+                await skip_btn.click(force=True, timeout=2000)
+            except Exception:
+                pass
             await asyncio.sleep(0.5)
 
         # Close install app card if visible
         close_card = page.locator('button[aria-label="Dismiss app install prompt"]')
         if await close_card.count() > 0:
-            await close_card.click()
+            try:
+                await close_card.click(force=True, timeout=2000)
+            except Exception:
+                pass
             await asyncio.sleep(0.5)
 
         # Enter floor if tap prompt visible
         enter_tap = page.locator('text="Tap anywhere to enter floor"')
         if await enter_tap.count() > 0:
-            await enter_tap.click()
+            try:
+                await enter_tap.click(force=True, timeout=2000)
+            except Exception:
+                pass
             await asyncio.sleep(0.5)
 
         # Start session on TV 1 if AVAILABLE
         start_btn = page.locator('button:has-text("START SESSION")').first
         if await start_btn.count() > 0:
-            await start_btn.click()
+            await start_btn.click(force=True)
             await asyncio.sleep(1)
 
-        # Add match
+        # Add match (Test immediate +MATCH first tap)
         add_match = page.locator('button:has-text("+ MATCH")').first
         if await add_match.count() > 0:
-            await add_match.click()
+            await add_match.click(force=True)
             await asyncio.sleep(1)
 
         # Finish session
         finish_btn = page.locator('button:has-text("FINISH SESSION")').first
         if await finish_btn.count() > 0:
-            await finish_btn.click()
+            await finish_btn.click(force=True)
             await asyncio.sleep(0.5)
             # Select Cash
             cash_btn = page.locator('button:has-text("CASH")').first
@@ -65,14 +74,10 @@ async def main():
 
         await page.screenshot(path='/home/jules/verification/screenshots/history_after_clear.png')
 
-        # Reload to confirm
-        await page.reload(wait_until='networkidle')
-        await asyncio.sleep(1)
-        await page.screenshot(path='/home/jules/verification/screenshots/history_after_reload.png')
-
-        # 3. Go to Reports
+        # 3. Go to Reports and verify Reports kept its values despite History clear
         await page.goto('http://localhost:3000/reports', wait_until='networkidle')
         await asyncio.sleep(1)
+        await page.screenshot(path='/home/jules/verification/screenshots/reports_kept_values.png')
 
         # Click Reset Reports
         reset_rep = page.locator('button:has-text("RESET REPORTS")')

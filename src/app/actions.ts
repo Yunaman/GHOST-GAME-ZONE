@@ -49,9 +49,9 @@ export async function toggleConsoleActiveAction(consoleId: string, isActive: boo
   }
 }
 
-export async function startSessionAction(consoleId: string, createdBy = 'Staff') {
+export async function startSessionAction(consoleId: string, createdBy = 'Staff', customSessionId?: string) {
   try {
-    const session = await repository.startSession(consoleId, createdBy);
+    const session = await repository.startSession(consoleId, createdBy, customSessionId);
     revalidatePath('/');
     revalidatePath('/history');
     return { success: true, data: session };

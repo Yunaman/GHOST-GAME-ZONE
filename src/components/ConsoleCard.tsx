@@ -91,7 +91,7 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
 
     startTransition(async () => {
       try {
-        const res = await startSessionAction(currentTv.id);
+        const res = await startSessionAction(currentTv.id, 'Staff', tempSessionId);
         if (res.success && res.data) {
           setCurrentSession(res.data);
         } else {
