@@ -1275,9 +1275,6 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(76 5 25 / var(--tw-bg-opacity, 1));
 }
-.bg-rose-950\/40 {
-  background-color: rgb(76 5 25 / 0.4);
-}
 .bg-rose-950\/80 {
   background-color: rgb(76 5 25 / 0.8);
 }
