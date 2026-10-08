@@ -11,8 +11,15 @@ import {
 } from '@/types';
 
 const dataDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+
+function ensureDataDir(): void {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    // In production / Vercel serverless environment, local filesystem writing is disallowed.
+    return;
+  }
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
 const dbFilePath = path.join(dataDir, 'ghost_game_zone_db.json');
@@ -55,6 +62,10 @@ function getInitialData(): DatabaseSchema {
 }
 
 export function loadDb(): DatabaseSchema {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    throw new Error('Local JSON filesystem database operations are disabled in production. Use Supabase.');
+  }
+  ensureDataDir();
   if (!fs.existsSync(dbFilePath)) {
     const initial = getInitialData();
     saveDb(initial);
@@ -71,6 +82,10 @@ export function loadDb(): DatabaseSchema {
 }
 
 export function saveDb(data: DatabaseSchema): void {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    throw new Error('Local JSON filesystem database operations are disabled in production. Use Supabase.');
+  }
+  ensureDataDir();
   const tmpPath = `${dbFilePath}.tmp`;
   fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
   fs.renameSync(tmpPath, dbFilePath);
