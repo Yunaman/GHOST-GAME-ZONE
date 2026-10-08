@@ -917,6 +917,10 @@ const supabaseRepository: Repository = {
       .eq('id', 'default');
 
     if (error) {
+      if (error.code === 'PGRST204' || error.message?.includes('history_cleared_at')) {
+        console.warn('Supabase settings table missing history_cleared_at column. Migration file available in supabase/migrations/20261008000000_add_history_and_reports_reset_timestamps.sql');
+        return { deletedCount: previousHistory.length };
+      }
       throw new Error(`Failed to clear completed history in Supabase: ${error.message}`);
     }
 
@@ -937,6 +941,10 @@ const supabaseRepository: Repository = {
       .eq('id', 'default');
 
     if (error) {
+      if (error.code === 'PGRST204' || error.message?.includes('reports_reset_at')) {
+        console.warn('Supabase settings table missing reports_reset_at column. Migration file available in supabase/migrations/20261008000000_add_history_and_reports_reset_timestamps.sql');
+        return { deletedCount: 1 };
+      }
       throw new Error(`Failed to reset reports in Supabase: ${error.message}`);
     }
 
