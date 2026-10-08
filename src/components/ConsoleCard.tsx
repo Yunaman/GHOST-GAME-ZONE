@@ -8,6 +8,7 @@ import {
   toggleMatchExtraTimeAction,
   undoLastMatchAction,
 } from '@/app/actions';
+import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency, cryptoRandomUUID } from '@/lib/utils';
 import { FinishSessionModal } from '@/components/FinishSessionModal';
 import {
@@ -19,7 +20,6 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
-  Loader2,
   AlertCircle
 } from 'lucide-react';
 
@@ -95,14 +95,18 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
         if (res.success && res.data) {
           setCurrentSession(res.data);
         } else {
-          setErrorMsg(res.error || 'Failed to start session');
-          setCurrentTv(initialTv);
-          setCurrentSession(initialSession || null);
+          // Offline fallback
+          const localSession = await offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId);
+          setCurrentSession(localSession);
         }
       } catch (err: any) {
-        setErrorMsg(err?.message || 'Error starting session');
-        setCurrentTv(initialTv);
-        setCurrentSession(initialSession || null);
+        // Offline fallback
+        try {
+          const localSession = await offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId);
+          setCurrentSession(localSession);
+        } catch (offlineErr: any) {
+          setErrorMsg(offlineErr?.message || 'Error starting session');
+        }
       }
     });
   }
@@ -111,7 +115,7 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
   async function handleAddMatch() {
     if (!currentSession) return;
     const now = Date.now();
-    if (now - lastTapTimeRef.current < 150) return; // Prevent double tap <150ms
+    if (now - lastTapTimeRef.current < 150) return;
     lastTapTimeRef.current = now;
 
     setErrorMsg(null);
@@ -146,12 +150,14 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       try {
         const res = await addMatchAction(previousSession.id, idempotencyKey);
         if (!res.success) {
-          setErrorMsg(res.error || 'Failed to add match');
-          setCurrentSession(previousSession); // Rollback
+          await offlineRepository.addMatch(previousSession.id, idempotencyKey);
         }
       } catch (err: any) {
-        setErrorMsg(err?.message || 'Error adding match');
-        setCurrentSession(previousSession); // Rollback
+        try {
+          await offlineRepository.addMatch(previousSession.id, idempotencyKey);
+        } catch (offlineErr: any) {
+          setErrorMsg(offlineErr?.message || 'Error adding match');
+        }
       }
     });
   }
@@ -193,12 +199,14 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       try {
         const res = await toggleMatchExtraTimeAction(previousSession.id, matchId);
         if (!res.success) {
-          setErrorMsg(res.error || 'Failed to toggle extra time');
-          setCurrentSession(previousSession); // Rollback
+          await offlineRepository.toggleMatchExtraTime(previousSession.id, matchId);
         }
       } catch (err: any) {
-        setErrorMsg(err?.message || 'Error toggling extra time');
-        setCurrentSession(previousSession); // Rollback
+        try {
+          await offlineRepository.toggleMatchExtraTime(previousSession.id, matchId);
+        } catch (offlineErr: any) {
+          setErrorMsg(offlineErr?.message || 'Error toggling extra time');
+        }
       }
     });
   }
@@ -224,12 +232,14 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       try {
         const res = await undoLastMatchAction(previousSession.id);
         if (!res.success) {
-          setErrorMsg(res.error || 'Failed to undo match');
-          setCurrentSession(previousSession); // Rollback
+          await offlineRepository.undoLastMatch(previousSession.id);
         }
       } catch (err: any) {
-        setErrorMsg(err?.message || 'Error undoing match');
-        setCurrentSession(previousSession); // Rollback
+        try {
+          await offlineRepository.undoLastMatch(previousSession.id);
+        } catch (offlineErr: any) {
+          setErrorMsg(offlineErr?.message || 'Error undoing match');
+        }
       }
     });
   }

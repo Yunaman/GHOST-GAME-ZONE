@@ -3,13 +3,39 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Gamepad2, History, BarChart3, Settings } from 'lucide-react';
+import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { initSyncEngine } from '@/lib/sync/sync-engine';
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+  useEffect(() => {
+    initSyncEngine();
+
+    setIsOnline(navigator.onLine);
+
+    const handleSyncStatus = (e: any) => {
+      if (e.detail) {
+        setIsOnline(e.detail.isOnline);
+        setPendingSyncCount(e.detail.pendingCount);
+      }
+    };
+
+    window.addEventListener('ghost_sync_status', handleSyncStatus);
+    window.addEventListener('ghost_data_updated', () => {
+      router.refresh();
+    });
+
+    return () => {
+      window.removeEventListener('ghost_sync_status', handleSyncStatus);
+    };
+  }, [router]);
 
   // Prefetch routes proactively on mount
   useEffect(() => {
@@ -61,6 +87,26 @@ export function Navbar() {
               <span className="font-handwriting text-purple-300 text-xs sm:text-sm leading-none">
                 FIFA gaming center
               </span>
+
+              {/* Online / Offline Sync Indicator */}
+              <div className="hidden xs:flex items-center gap-1 text-[9px] font-gaming font-bold uppercase px-1.5 py-0.5 rounded border">
+                {!isOnline ? (
+                  <span className="text-amber-400 border-amber-800/80 bg-amber-950/60 flex items-center gap-1">
+                    <WifiOff className="w-2.5 h-2.5 text-amber-400" />
+                    <span>LOCAL</span>
+                  </span>
+                ) : pendingSyncCount > 0 ? (
+                  <span className="text-purple-300 border-purple-800/80 bg-purple-950/60 flex items-center gap-1">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin text-purple-300" />
+                    <span>SYNCING ({pendingSyncCount})</span>
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 border-emerald-800/80 bg-emerald-950/60 flex items-center gap-1">
+                    <Wifi className="w-2.5 h-2.5 text-emerald-400" />
+                    <span>SYNCED</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </Link>
