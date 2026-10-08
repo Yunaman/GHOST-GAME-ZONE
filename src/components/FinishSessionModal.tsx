@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Session, PaymentMethod } from '@/types';
 import { finishSessionAction } from '@/app/actions';
 import { formatCurrency } from '@/lib/utils';
+import { notifyDataChanged } from '@/lib/sync/sync-engine';
 import { Check, CreditCard, Banknote, Building2, X, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface FinishSessionModalProps {
   session: Session;
@@ -14,34 +16,38 @@ interface FinishSessionModalProps {
 }
 
 export function FinishSessionModal({ session, currency, onClose, onSuccess }: FinishSessionModalProps) {
+  const router = useRouter();
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [reference, setReference] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const matchCount = session.matches?.length || 0;
   const extraTimeCount = session.matches?.filter((m) => m.extra_time).length || 0;
 
   async function handleFinish() {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setError(null);
 
-    // INSTANT UI RESPONSE (<10ms)
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      onClose();
-    }
-
-    startTransition(async () => {
-      try {
-        const res = await finishSessionAction(session.id, method, reference.trim());
-        if (!res.success) {
-          console.error('Background finish session error:', res.error);
+    try {
+      const res = await finishSessionAction(session.id, method, reference.trim());
+      if (res.success) {
+        notifyDataChanged();
+        router.refresh();
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
         }
-      } catch (err: any) {
-        console.error('Background finish session exception:', err);
+      } else {
+        setError(res.error || 'Failed to finish session');
+        setIsSubmitting(false);
       }
-    });
+    } catch (err: any) {
+      setError(err?.message || 'Error finishing session');
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -59,6 +65,7 @@ export function FinishSessionModal({ session, currency, onClose, onSuccess }: Fi
           </div>
           <button
             onClick={onClose}
+            disabled={isSubmitting}
             className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -162,10 +169,17 @@ export function FinishSessionModal({ session, currency, onClose, onSuccess }: Fi
           <button
             type="button"
             onClick={handleFinish}
-            className="w-full py-4 ghost-btn-primary font-gaming font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="w-full py-4 ghost-btn-primary font-gaming font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            <Check className="w-6 h-6 text-black" />
-            <span className="text-black">CONFIRM & CLOSE SESSION 👻</span>
+            {isSubmitting ? (
+              <Loader2 className="w-6 h-6 animate-spin text-black" />
+            ) : (
+              <Check className="w-6 h-6 text-black" />
+            )}
+            <span className="text-black">
+              {isSubmitting ? 'CLOSING SESSION...' : 'CONFIRM & CLOSE SESSION 👻'}
+            </span>
           </button>
         </div>
       </div>

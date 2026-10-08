@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ghost-game-zone-v1';
+const CACHE_NAME = 'ghost-game-zone-v2';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -9,7 +9,10 @@ const PRECACHE_ASSETS = [
   '/compiled-global.css',
   '/ghost-payment-card.png',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/file.svg',
+  '/globe.svg',
+  '/window.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,7 +43,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Network-first strategy for dynamic server paths, falling back to cache
+  // Network-first for HTML navigation and API routes, with offline fallback to cache
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -58,7 +61,7 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse;
           }
           if (event.request.mode === 'navigate') {
-            return caches.match('/');
+            return caches.match('/') || caches.match('/history') || caches.match('/reports');
           }
         });
       })
