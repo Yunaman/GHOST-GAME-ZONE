@@ -8,6 +8,7 @@ import {
   addConsoleAction,
   toggleConsoleActiveAction,
 } from '@/app/actions';
+import { offlineRepository } from '@/lib/repository/offline-repository';
 import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette } from 'lucide-react';
 import { useTheme, AppTheme } from '@/components/ThemeProvider';
 
@@ -16,18 +17,20 @@ interface SettingsFormProps {
   consoles: Console[];
 }
 
-export function SettingsForm({ settings, consoles }: SettingsFormProps) {
+export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFormProps) {
   const { theme, setTheme } = useTheme();
   const [fifaNormalPrice, setFifaNormalPrice] = useState<number>(settings.fifa_normal_price);
   const [fifaExtraTimePrice, setFifaExtraTimePrice] = useState<number>(settings.fifa_extra_time_price);
   const [currency, setCurrency] = useState<string>(settings.currency);
 
+  const [consoles, setConsoles] = useState<Console[]>(initialConsoles);
+
   const [consoleNames, setConsoleNames] = useState<Record<string, string>>(
-    consoles.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {})
+    initialConsoles.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {})
   );
 
   const [consoleActiveState, setConsoleActiveState] = useState<Record<string, boolean>>(
-    consoles.reduce((acc, c) => ({ ...acc, [c.id]: c.is_active !== false }), {})
+    initialConsoles.reduce((acc, c) => ({ ...acc, [c.id]: c.is_active !== false }), {})
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,12 +43,27 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
     try {
       const res = await addConsoleAction();
       if (res.success && res.data) {
+        setConsoles((prev) => [...prev, res.data]);
+        setConsoleNames((prev) => ({ ...prev, [res.data.id]: res.data.name }));
+        setConsoleActiveState((prev) => ({ ...prev, [res.data.id]: true }));
         setMsg({ type: 'success', text: `Successfully created ${res.data.name}!` });
       } else {
-        setMsg({ type: 'error', text: res.error || 'Failed to add TV' });
+        const newC = await offlineRepository.addConsole();
+        setConsoles((prev) => [...prev, newC]);
+        setConsoleNames((prev) => ({ ...prev, [newC.id]: newC.name }));
+        setConsoleActiveState((prev) => ({ ...prev, [newC.id]: true }));
+        setMsg({ type: 'success', text: `Successfully created ${newC.name}!` });
       }
     } catch (err: any) {
-      setMsg({ type: 'error', text: err?.message || 'Error adding TV' });
+      try {
+        const newC = await offlineRepository.addConsole();
+        setConsoles((prev) => [...prev, newC]);
+        setConsoleNames((prev) => ({ ...prev, [newC.id]: newC.name }));
+        setConsoleActiveState((prev) => ({ ...prev, [newC.id]: true }));
+        setMsg({ type: 'success', text: `Successfully created ${newC.name}!` });
+      } catch (offlineErr: any) {
+        setMsg({ type: 'error', text: offlineErr?.message || 'Error adding TV' });
+      }
     } finally {
       setIsAddingTv(false);
     }
@@ -55,9 +73,16 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
     const nextState = !currentActive;
     setConsoleActiveState({ ...consoleActiveState, [consoleId]: nextState });
     try {
-      await toggleConsoleActiveAction(consoleId, nextState);
+      const res = await toggleConsoleActiveAction(consoleId, nextState);
+      if (!res.success) {
+        await offlineRepository.toggleConsoleActive(consoleId, nextState);
+      }
     } catch (err: any) {
-      setMsg({ type: 'error', text: 'Failed to update TV active status' });
+      try {
+        await offlineRepository.toggleConsoleActive(consoleId, nextState);
+      } catch (offlineErr) {
+        setMsg({ type: 'error', text: 'Failed to update TV active status' });
+      }
     }
   }
 
@@ -69,19 +94,34 @@ export function SettingsForm({ settings, consoles }: SettingsFormProps) {
     try {
       const settingsRes = await updateSettingsAction(fifaNormalPrice, fifaExtraTimePrice, currency.trim());
       if (!settingsRes.success) {
-        throw new Error(settingsRes.error || 'Failed to update pricing settings');
+        await offlineRepository.updateSettings(fifaNormalPrice, fifaExtraTimePrice, currency.trim());
       }
 
       for (const consoleItem of consoles) {
         const newName = consoleNames[consoleItem.id];
         if (newName && newName !== consoleItem.name) {
-          await updateConsoleNameAction(consoleItem.id, newName.trim());
+          try {
+            await updateConsoleNameAction(consoleItem.id, newName.trim());
+          } catch (err) {
+            await offlineRepository.updateConsoleName(consoleItem.id, newName.trim());
+          }
         }
       }
 
       setMsg({ type: 'success', text: 'System settings saved successfully!' });
     } catch (err: any) {
-      setMsg({ type: 'error', text: err?.message || 'Error saving settings' });
+      try {
+        await offlineRepository.updateSettings(fifaNormalPrice, fifaExtraTimePrice, currency.trim());
+        for (const consoleItem of consoles) {
+          const newName = consoleNames[consoleItem.id];
+          if (newName && newName !== consoleItem.name) {
+            await offlineRepository.updateConsoleName(consoleItem.id, newName.trim());
+          }
+        }
+        setMsg({ type: 'success', text: 'System settings saved locally!' });
+      } catch (offlineErr: any) {
+        setMsg({ type: 'error', text: offlineErr?.message || 'Error saving settings' });
+      }
     } finally {
       setIsSubmitting(false);
     }
