@@ -21,7 +21,7 @@ export interface Repository {
   toggleConsoleActive(id: string, isActive: boolean): Promise<Console>;
   getActiveSessionByConsoleId(consoleId: string): Promise<Session | null>;
   getSessionById(sessionId: string): Promise<Session | null>;
-  startSession(consoleId: string, createdBy?: string): Promise<Session>;
+  startSession(consoleId: string, createdBy?: string, customSessionId?: string): Promise<Session>;
   addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }>;
   toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }>;
   undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }>;
@@ -71,7 +71,7 @@ const fsRepository: Repository = {
   async getSettings(): Promise<Settings> {
     const db = loadDb();
     const settingsObj = Array.isArray(db.settings) ? db.settings[0] : db.settings;
-    return settingsObj || { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', updated_at: new Date().toISOString() };
+    return settingsObj || { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
   },
 
   async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
@@ -163,7 +163,7 @@ const fsRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff'): Promise<Session> {
+  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
     const db = loadDb();
     const consoleObj = db.consoles.find((c) => c.id === consoleId);
     if (!consoleObj) throw new Error('Console TV not found');
@@ -171,7 +171,7 @@ const fsRepository: Repository = {
     const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
     if (active) throw new Error('TV already has an active session');
 
-    const sessionId = cryptoRandomUUID();
+    const sessionId = customSessionId || cryptoRandomUUID();
     const now = new Date().toISOString();
 
     const newSession: Session = {
@@ -370,8 +370,12 @@ const fsRepository: Repository = {
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
     const db = loadDb();
+    const settings = await this.getSettings();
+    const clearedAt = settings.history_cleared_at ? new Date(settings.history_cleared_at).getTime() : 0;
+
     const sorted = db.sessions
       .filter((s) => s.status === 'FINISHED')
+      .filter((s) => new Date(s.finished_at || s.created_at).getTime() > clearedAt)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, limit);
 
@@ -385,20 +389,21 @@ const fsRepository: Repository = {
 
   async clearCompletedHistory(): Promise<{ deletedCount: number }> {
     const db = loadDb();
+    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const now = new Date().toISOString();
 
-    // Target all completed/finished sessions regardless of date
-    const targetSessions = db.sessions.filter(s => s.status === 'FINISHED');
+    const previousHistory = await this.getSessionsHistory(1000);
+    const count = previousHistory.length;
 
-    const targetIds = new Set(targetSessions.map(s => s.id));
-    if (targetIds.size === 0) return { deletedCount: 0 };
-
-    db.matches = db.matches.filter(m => !targetIds.has(m.session_id));
-    db.payments = db.payments.filter(p => !targetIds.has(p.session_id));
-    db.adjustments = db.adjustments.filter(a => !targetIds.has(a.session_id));
-    db.sessions = db.sessions.filter(s => !targetIds.has(s.id));
+    if (settings) {
+      settings.history_cleared_at = now;
+      settings.updated_at = now;
+    } else {
+      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', history_cleared_at: now, updated_at: now };
+    }
 
     saveDb(db);
-    return { deletedCount: targetIds.size };
+    return { deletedCount: count };
   },
 
   async clearTodayHistory(): Promise<{ deletedCount: number }> {
@@ -406,13 +411,34 @@ const fsRepository: Repository = {
   },
 
   async resetReports(): Promise<{ deletedCount: number }> {
-    return this.clearCompletedHistory();
+    const db = loadDb();
+    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const now = new Date().toISOString();
+
+    if (settings) {
+      settings.reports_reset_at = now;
+      settings.updated_at = now;
+    } else {
+      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', reports_reset_at: now, updated_at: now };
+    }
+
+    saveDb(db);
+    return { deletedCount: 1 };
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
     const db = loadDb();
-    const sessions = await this.getSessionsHistory(1000);
-    const finishedSessions = sessions.filter((s) => s.status === 'FINISHED');
+    const settings = await this.getSettings();
+    const resetAt = settings.reports_reset_at ? new Date(settings.reports_reset_at).getTime() : 0;
+
+    const allFinishedSessions = db.sessions.filter((s) => s.status === 'FINISHED');
+    const finishedSessions: Session[] = [];
+    for (const item of allFinishedSessions) {
+      if (new Date(item.finished_at || item.created_at).getTime() > resetAt) {
+        const full = await this.getSessionById(item.id);
+        if (full) finishedSessions.push(full);
+      }
+    }
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -517,6 +543,8 @@ const supabaseRepository: Repository = {
       fifa_normal_price: Number(data.fifa_normal_price),
       fifa_extra_time_price: Number(data.fifa_extra_time_price),
       currency: data.currency,
+      history_cleared_at: data.history_cleared_at || undefined,
+      reports_reset_at: data.reports_reset_at || undefined,
       updated_at: data.updated_at,
     };
   },
@@ -621,23 +649,28 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff'): Promise<Session> {
-    if (!supabase) return fsRepository.startSession(consoleId, createdBy);
+  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
+    if (!supabase) return fsRepository.startSession(consoleId, createdBy, customSessionId);
 
     const { data: existing } = await supabase.from('sessions').select('id').eq('console_id', consoleId).eq('status', 'ACTIVE').single();
     if (existing) throw new Error('TV already has an active session');
 
+    const insertPayload: any = {
+      console_id: consoleId,
+      game_type: 'FIFA',
+      billing_type: 'MATCH_BASED',
+      status: 'ACTIVE',
+      total_amount: 0.00,
+      payment_status: 'UNPAID',
+      created_by: createdBy,
+    };
+    if (customSessionId) {
+      insertPayload.id = customSessionId;
+    }
+
     const { data: session, error } = await supabase
       .from('sessions')
-      .insert({
-        console_id: consoleId,
-        game_type: 'FIFA',
-        billing_type: 'MATCH_BASED',
-        status: 'ACTIVE',
-        total_amount: 0.00,
-        payment_status: 'UNPAID',
-        created_by: createdBy,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -840,12 +873,19 @@ const supabaseRepository: Repository = {
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
     if (!supabase) return fsRepository.getSessionsHistory(limit);
-    const { data } = await supabase
+    const settings = await this.getSettings();
+    let query = supabase
       .from('sessions')
       .select('id')
       .eq('status', 'FINISHED')
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    if (settings.history_cleared_at) {
+      query = query.gt('finished_at', settings.history_cleared_at);
+    }
+
+    const { data } = await query;
     if (!data) return [];
 
     const result: Session[] = [];
@@ -858,27 +898,20 @@ const supabaseRepository: Repository = {
 
   async clearCompletedHistory(): Promise<{ deletedCount: number }> {
     if (!supabase) return fsRepository.clearCompletedHistory();
+    const now = new Date().toISOString();
+    const previousHistory = await this.getSessionsHistory(1000);
 
-    const { data: finishedSessions, error } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('status', 'FINISHED');
+    const { error } = await supabase
+      .from('settings')
+      .update({ history_cleared_at: now, updated_at: now })
+      .eq('id', 'default');
 
-    if (error || !finishedSessions || finishedSessions.length === 0) {
-      return { deletedCount: 0 };
+    if (error) {
+      // If column history_cleared_at doesn't exist in Supabase SQL schema yet, fallback to fs logic
+      return fsRepository.clearCompletedHistory();
     }
 
-    const targetIds = finishedSessions.map(s => s.id);
-
-    await supabase.from('matches').delete().in('session_id', targetIds);
-    await supabase.from('payments').delete().in('session_id', targetIds);
-    await supabase.from('adjustments').delete().in('session_id', targetIds);
-
-    // First update status away from FINISHED to clear RLS target filter, then delete or leave cancelled
-    await supabase.from('sessions').update({ status: 'CANCELLED' }).in('id', targetIds);
-    await supabase.from('sessions').delete().in('id', targetIds);
-
-    return { deletedCount: targetIds.length };
+    return { deletedCount: previousHistory.length };
   },
 
   async clearTodayHistory(): Promise<{ deletedCount: number }> {
@@ -888,13 +921,41 @@ const supabaseRepository: Repository = {
 
   async resetReports(): Promise<{ deletedCount: number }> {
     if (!supabase) return fsRepository.resetReports();
-    return this.clearCompletedHistory();
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('settings')
+      .update({ reports_reset_at: now, updated_at: now })
+      .eq('id', 'default');
+
+    if (error) {
+      return fsRepository.resetReports();
+    }
+
+    return { deletedCount: 1 };
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
     if (!supabase) return fsRepository.getAnalyticsSummary();
-    const sessions = await this.getSessionsHistory(1000);
-    const finishedSessions = sessions.filter((s) => s.status === 'FINISHED');
+    const settings = await this.getSettings();
+
+    let query = supabase
+      .from('sessions')
+      .select('id')
+      .eq('status', 'FINISHED');
+
+    if (settings.reports_reset_at) {
+      query = query.gt('finished_at', settings.reports_reset_at);
+    }
+
+    const { data } = await query;
+    if (!data) return fsRepository.getAnalyticsSummary();
+
+    const finishedSessions: Session[] = [];
+    for (const item of data) {
+      const sess = await this.getSessionById(item.id);
+      if (sess) finishedSessions.push(sess);
+    }
 
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];

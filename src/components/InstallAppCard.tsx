@@ -91,7 +91,7 @@ export function InstallAppCard() {
         <button
           type="button"
           onClick={handleClose}
-          aria-label="Close Install Card"
+          aria-label="Dismiss app install prompt"
           className="absolute top-3.5 right-3.5 p-1 rounded-full bg-purple-950/80 hover:bg-purple-900 border border-purple-600/60 text-purple-300 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />

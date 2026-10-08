@@ -23,3 +23,7 @@
     at ignore-listed frames {
   digest: '2513548569'
 }
+⨯ Error: The destination stream closed early.
+    at ignore-listed frames {
+  digest: '2513548569'
+}

@@ -32,7 +32,7 @@
       "status": "AVAILABLE",
       "display_order": 1,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.800Z"
+      "created_at": "2026-10-08T08:34:19.827Z"
     },
     {
       "id": "c-2",
@@ -40,7 +40,7 @@
       "status": "PLAYING",
       "display_order": 2,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.800Z"
+      "created_at": "2026-10-08T08:34:19.827Z"
     },
     {
       "id": "c-3",
@@ -48,7 +48,7 @@
       "status": "AVAILABLE",
       "display_order": 3,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.800Z"
+      "created_at": "2026-10-08T08:34:19.827Z"
     },
     {
       "id": "c-4",
@@ -56,7 +56,7 @@
       "status": "AVAILABLE",
       "display_order": 4,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.815Z"
+      "created_at": "2026-10-08T08:34:19.842Z"
     },
     {
       "id": "c-5",
@@ -64,7 +64,7 @@
       "status": "AVAILABLE",
       "display_order": 5,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.816Z"
+      "created_at": "2026-10-08T08:34:19.843Z"
     },
     {
       "id": "c-6",
@@ -72,7 +72,7 @@
       "status": "AVAILABLE",
       "display_order": 6,
       "is_active": true,
-      "created_at": "2026-10-08T07:42:21.816Z"
+      "created_at": "2026-10-08T08:34:19.844Z"
     }
   ],
   "settings": {
@@ -80,34 +80,87 @@
     "fifa_normal_price": 15,
     "fifa_extra_time_price": 5,
     "currency": "ETB",
-    "updated_at": "2026-10-06T19:37:05.889Z"
+    "updated_at": "2026-10-08T08:34:19.848Z",
+    "history_cleared_at": "2026-10-08T08:34:19.848Z",
+    "reports_reset_at": "2026-10-08T08:32:48.749Z"
   },
   "sessions": [
     {
-      "id": "ce75c30f-66e3-43b0-be29-3b934335f001",
+      "id": "2edfb5d4-f261-4993-8c0f-3d03a4e4ca48",
+      "console_id": "c-1",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-08T08:34:19.829Z",
+      "total_amount": 50,
+      "payment_status": "PAID",
+      "created_by": "Tester",
+      "created_at": "2026-10-08T08:34:19.829Z",
+      "finished_at": "2026-10-08T08:34:19.841Z"
+    },
+    {
+      "id": "0aa6ff6e-11de-4d01-9b61-da7f5669f992",
       "console_id": "c-2",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "ACTIVE",
-      "started_at": "2026-10-08T07:42:21.818Z",
+      "started_at": "2026-10-08T08:34:19.845Z",
       "total_amount": 15,
       "payment_status": "UNPAID",
       "created_by": "ActivePlayer",
-      "created_at": "2026-10-08T07:42:21.818Z"
+      "created_at": "2026-10-08T08:34:19.845Z"
     }
   ],
   "matches": [
     {
-      "id": "86f3d572-1a63-47eb-9544-17efe7c37f64",
-      "session_id": "ce75c30f-66e3-43b0-be29-3b934335f001",
+      "id": "6f3ed3fb-bfb2-4084-a248-4e7fc8d7cc4f",
+      "session_id": "2edfb5d4-f261-4993-8c0f-3d03a4e4ca48",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-08T07:42:21.819Z"
+      "created_at": "2026-10-08T08:34:19.830Z"
+    },
+    {
+      "id": "cb15e4a3-bbb7-44bb-a936-17af7d3cc691",
+      "session_id": "2edfb5d4-f261-4993-8c0f-3d03a4e4ca48",
+      "match_number": 2,
+      "base_price": 15,
+      "extra_time": true,
+      "extra_time_price": 5,
+      "total_price": 20,
+      "created_at": "2026-10-08T08:34:19.832Z"
+    },
+    {
+      "id": "7252d4cc-6cd7-423e-9d40-e098eccf41e9",
+      "session_id": "2edfb5d4-f261-4993-8c0f-3d03a4e4ca48",
+      "match_number": 3,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-08T08:34:19.836Z"
+    },
+    {
+      "id": "cfffccb2-d2fb-4e18-8159-4946b6fe89ff",
+      "session_id": "0aa6ff6e-11de-4d01-9b61-da7f5669f992",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-08T08:34:19.846Z"
     }
   ],
-  "payments": [],
+  "payments": [
+    {
+      "id": "d5bde9cf-c268-4b1c-9540-ccb2fdc0607c",
+      "session_id": "2edfb5d4-f261-4993-8c0f-3d03a4e4ca48",
+      "method": "CASH",
+      "amount": 50,
+      "created_at": "2026-10-08T08:34:19.841Z"
+    }
+  ],
   "adjustments": []
 }

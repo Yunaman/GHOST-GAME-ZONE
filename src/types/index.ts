@@ -35,6 +35,8 @@ export interface Settings {
   fifa_normal_price: number;
   fifa_extra_time_price: number;
   currency: string;
+  history_cleared_at?: string;
+  reports_reset_at?: string;
   updated_at: string;
 }
 
