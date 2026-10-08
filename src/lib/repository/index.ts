@@ -532,12 +532,22 @@ const fsRepository: Repository = {
   },
 };
 
+// Helper to check Supabase client instance
+function getSupabaseClient() {
+  if (!supabase) {
+    throw new Error('Supabase configuration error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY are missing in production.');
+  }
+  return supabase;
+}
+
 // --- Supabase Implementation ---
 const supabaseRepository: Repository = {
   async getSettings(): Promise<Settings> {
-    if (!supabase) return fsRepository.getSettings();
-    const { data, error } = await supabase.from('settings').select('*').eq('id', 'default').single();
-    if (error || !data) return fsRepository.getSettings();
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('settings').select('*').eq('id', 'default').single();
+    if (error || !data) {
+      return { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
+    }
     return {
       id: data.id,
       fifa_normal_price: Number(data.fifa_normal_price),
@@ -550,8 +560,8 @@ const supabaseRepository: Repository = {
   },
 
   async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
-    if (!supabase) return fsRepository.updateSettings(fifa_normal_price, fifa_extra_time_price, currency);
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    const { data, error } = await client
       .from('settings')
       .update({ fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
       .eq('id', 'default')
@@ -569,19 +579,19 @@ const supabaseRepository: Repository = {
   },
 
   async getConsoles(): Promise<Console[]> {
-    if (!supabase) return fsRepository.getConsoles();
-    const { data, error } = await supabase.from('consoles').select('*').order('display_order', { ascending: true });
-    if (error || !data) return fsRepository.getConsoles();
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('consoles').select('*').order('display_order', { ascending: true });
+    if (error || !data) return [];
     return data as Console[];
   },
 
   async addConsole(): Promise<Console> {
-    if (!supabase) return fsRepository.addConsole();
+    const client = getSupabaseClient();
     const consoles = await this.getConsoles();
     const nextNum = getNextTvNumber(consoles);
     const name = `TV ${nextNum}`;
 
-    const { data, error } = await supabase.from('consoles').insert({
+    const { data, error } = await client.from('consoles').insert({
       name,
       status: 'AVAILABLE',
       display_order: consoles.length + 1,
@@ -593,22 +603,22 @@ const supabaseRepository: Repository = {
   },
 
   async updateConsoleName(id: string, name: string): Promise<Console> {
-    if (!supabase) return fsRepository.updateConsoleName(id, name);
-    const { data, error } = await supabase.from('consoles').update({ name }).eq('id', id).select().single();
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('consoles').update({ name }).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     return data as Console;
   },
 
   async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
-    if (!supabase) return fsRepository.toggleConsoleActive(id, isActive);
-    const { data, error } = await supabase.from('consoles').update({ is_active: isActive }).eq('id', id).select().single();
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('consoles').update({ is_active: isActive }).eq('id', id).select().single();
     if (error) throw new Error(error.message);
     return data as Console;
   },
 
   async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
-    if (!supabase) return fsRepository.getActiveSessionByConsoleId(consoleId);
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    const { data, error } = await client
       .from('sessions')
       .select('id')
       .eq('console_id', consoleId)
@@ -620,14 +630,14 @@ const supabaseRepository: Repository = {
   },
 
   async getSessionById(sessionId: string): Promise<Session | null> {
-    if (!supabase) return fsRepository.getSessionById(sessionId);
-    const { data: session, error } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
+    const client = getSupabaseClient();
+    const { data: session, error } = await client.from('sessions').select('*').eq('id', sessionId).single();
     if (error || !session) return null;
 
-    const { data: consoleObj } = await supabase.from('consoles').select('name').eq('id', session.console_id).single();
-    const { data: matches } = await supabase.from('matches').select('*').eq('session_id', sessionId).order('match_number', { ascending: true });
-    const { data: payments } = await supabase.from('payments').select('*').eq('session_id', sessionId);
-    const { data: adjustments } = await supabase.from('adjustments').select('*').eq('session_id', sessionId).order('created_at', { ascending: true });
+    const { data: consoleObj } = await client.from('consoles').select('name').eq('id', session.console_id).single();
+    const { data: matches } = await client.from('matches').select('*').eq('session_id', sessionId).order('match_number', { ascending: true });
+    const { data: payments } = await client.from('payments').select('*').eq('session_id', sessionId);
+    const { data: adjustments } = await client.from('adjustments').select('*').eq('session_id', sessionId).order('created_at', { ascending: true });
 
     return {
       ...session,
@@ -650,9 +660,9 @@ const supabaseRepository: Repository = {
   },
 
   async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
-    if (!supabase) return fsRepository.startSession(consoleId, createdBy, customSessionId);
+    const client = getSupabaseClient();
 
-    const { data: existing } = await supabase.from('sessions').select('id').eq('console_id', consoleId).eq('status', 'ACTIVE').single();
+    const { data: existing } = await client.from('sessions').select('id').eq('console_id', consoleId).eq('status', 'ACTIVE').single();
     if (existing) throw new Error('TV already has an active session');
 
     const insertPayload: any = {
@@ -668,7 +678,7 @@ const supabaseRepository: Repository = {
       insertPayload.id = customSessionId;
     }
 
-    const { data: session, error } = await supabase
+    const { data: session, error } = await client
       .from('sessions')
       .insert(insertPayload)
       .select()
@@ -676,7 +686,7 @@ const supabaseRepository: Repository = {
 
     if (error || !session) throw new Error(error?.message || 'Failed to start session');
 
-    await supabase.from('consoles').update({ status: 'PLAYING' }).eq('id', consoleId);
+    await client.from('consoles').update({ status: 'PLAYING' }).eq('id', consoleId);
 
     const fullSession = await this.getSessionById(session.id);
     if (!fullSession) throw new Error('Session retrieval failed');
@@ -684,13 +694,13 @@ const supabaseRepository: Repository = {
   },
 
   async addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }> {
-    if (!supabase) return fsRepository.addMatch(sessionId, idempotencyKey);
+    const client = getSupabaseClient();
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
     if (idempotencyKey) {
-      const { data: existing } = await supabase
+      const { data: existing } = await client
         .from('matches')
         .select('*')
         .eq('session_id', sessionId)
@@ -705,7 +715,7 @@ const supabaseRepository: Repository = {
     const nextMatchNum = (session.matches?.length || 0) + 1;
     const basePrice = settings.fifa_normal_price;
 
-    const { data: createdMatch, error } = await supabase
+    const { data: createdMatch, error } = await client
       .from('matches')
       .insert({
         session_id: sessionId,
@@ -723,7 +733,7 @@ const supabaseRepository: Repository = {
 
     const updatedMatches = [...(session.matches || []), createdMatch];
     const newTotal = updatedMatches.reduce((acc, m) => acc + Number(m.total_price), 0);
-    await supabase.from('sessions').update({ total_amount: newTotal }).eq('id', sessionId);
+    await client.from('sessions').update({ total_amount: newTotal }).eq('id', sessionId);
 
     return {
       match: {
@@ -737,7 +747,7 @@ const supabaseRepository: Repository = {
   },
 
   async toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }> {
-    if (!supabase) return fsRepository.toggleMatchExtraTime(sessionId, matchId);
+    const client = getSupabaseClient();
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
@@ -750,7 +760,7 @@ const supabaseRepository: Repository = {
     const extraPrice = isAdding ? settings.fifa_extra_time_price : 0.00;
     const totalPrice = match.base_price + extraPrice;
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await client
       .from('matches')
       .update({
         extra_time: isAdding,
@@ -768,7 +778,7 @@ const supabaseRepository: Repository = {
     const adjustmentsSum = updatedSession?.adjustments?.reduce((acc, a) => acc + Number(a.adjustment_amount), 0) || 0;
     const newTotal = matchesSum + adjustmentsSum;
 
-    await supabase.from('sessions').update({ total_amount: newTotal }).eq('id', sessionId);
+    await client.from('sessions').update({ total_amount: newTotal }).eq('id', sessionId);
 
     return {
       match: {
@@ -782,7 +792,7 @@ const supabaseRepository: Repository = {
   },
 
   async undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }> {
-    if (!supabase) return fsRepository.undoLastMatch(sessionId);
+    const client = getSupabaseClient();
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
@@ -792,17 +802,17 @@ const supabaseRepository: Repository = {
     }
 
     const lastMatch = session.matches[session.matches.length - 1];
-    await supabase.from('matches').delete().eq('id', lastMatch.id);
+    await client.from('matches').delete().eq('id', lastMatch.id);
 
     const updatedSession = await this.getSessionById(sessionId);
     const matchesSum = updatedSession?.matches?.reduce((acc, m) => acc + Number(m.total_price), 0) || 0;
-    await supabase.from('sessions').update({ total_amount: matchesSum }).eq('id', sessionId);
+    await client.from('sessions').update({ total_amount: matchesSum }).eq('id', sessionId);
 
     return { sessionTotal: matchesSum };
   },
 
   async finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session> {
-    if (!supabase) return fsRepository.finishSession(sessionId, paymentMethod, reference);
+    const client = getSupabaseClient();
 
     const session = await this.getSessionById(sessionId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is already finished');
@@ -810,14 +820,14 @@ const supabaseRepository: Repository = {
     const finalTotal = session.total_amount;
     const now = new Date().toISOString();
 
-    await supabase.from('payments').insert({
+    await client.from('payments').insert({
       session_id: sessionId,
       method: paymentMethod,
       amount: finalTotal,
       reference: reference || null,
     });
 
-    await supabase
+    await client
       .from('sessions')
       .update({
         status: 'FINISHED',
@@ -826,7 +836,7 @@ const supabaseRepository: Repository = {
       })
       .eq('id', sessionId);
 
-    await supabase.from('consoles').update({ status: 'AVAILABLE' }).eq('id', session.console_id);
+    await client.from('consoles').update({ status: 'AVAILABLE' }).eq('id', session.console_id);
 
     const finished = await this.getSessionById(sessionId);
     if (!finished) throw new Error('Failed to retrieve finished session');
@@ -834,7 +844,7 @@ const supabaseRepository: Repository = {
   },
 
   async createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager'): Promise<Adjustment> {
-    if (!supabase) return fsRepository.createAdjustment(sessionId, adjustmentAmount, reason, createdBy);
+    const client = getSupabaseClient();
 
     const session = await this.getSessionById(sessionId);
     if (!session) throw new Error('Session not found');
@@ -842,7 +852,7 @@ const supabaseRepository: Repository = {
     const originalAmount = session.total_amount;
     const resultingAmount = originalAmount + adjustmentAmount;
 
-    const { data: adj, error } = await supabase
+    const { data: adj, error } = await client
       .from('adjustments')
       .insert({
         session_id: sessionId,
@@ -857,10 +867,10 @@ const supabaseRepository: Repository = {
 
     if (error || !adj) throw new Error(error?.message || 'Failed to create adjustment');
 
-    await supabase.from('sessions').update({ total_amount: resultingAmount }).eq('id', sessionId);
+    await client.from('sessions').update({ total_amount: resultingAmount }).eq('id', sessionId);
 
     if (session.status === 'FINISHED') {
-      await supabase.from('payments').update({ amount: resultingAmount }).eq('session_id', sessionId);
+      await client.from('payments').update({ amount: resultingAmount }).eq('session_id', sessionId);
     }
 
     return {
@@ -872,9 +882,9 @@ const supabaseRepository: Repository = {
   },
 
   async getSessionsHistory(limit = 100): Promise<Session[]> {
-    if (!supabase) return fsRepository.getSessionsHistory(limit);
+    const client = getSupabaseClient();
     const settings = await this.getSettings();
-    let query = supabase
+    let query = client
       .from('sessions')
       .select('id')
       .eq('status', 'FINISHED')
@@ -897,49 +907,47 @@ const supabaseRepository: Repository = {
   },
 
   async clearCompletedHistory(): Promise<{ deletedCount: number }> {
-    if (!supabase) return fsRepository.clearCompletedHistory();
+    const client = getSupabaseClient();
     const now = new Date().toISOString();
     const previousHistory = await this.getSessionsHistory(1000);
 
-    const { error } = await supabase
+    const { error } = await client
       .from('settings')
       .update({ history_cleared_at: now, updated_at: now })
       .eq('id', 'default');
 
     if (error) {
-      // If column history_cleared_at doesn't exist in Supabase SQL schema yet, fallback to fs logic
-      return fsRepository.clearCompletedHistory();
+      throw new Error(`Failed to clear completed history in Supabase: ${error.message}`);
     }
 
     return { deletedCount: previousHistory.length };
   },
 
   async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    if (!supabase) return fsRepository.clearCompletedHistory();
     return this.clearCompletedHistory();
   },
 
   async resetReports(): Promise<{ deletedCount: number }> {
-    if (!supabase) return fsRepository.resetReports();
+    const client = getSupabaseClient();
     const now = new Date().toISOString();
 
-    const { error } = await supabase
+    const { error } = await client
       .from('settings')
       .update({ reports_reset_at: now, updated_at: now })
       .eq('id', 'default');
 
     if (error) {
-      return fsRepository.resetReports();
+      throw new Error(`Failed to reset reports in Supabase: ${error.message}`);
     }
 
     return { deletedCount: 1 };
   },
 
   async getAnalyticsSummary(): Promise<AnalyticsSummary> {
-    if (!supabase) return fsRepository.getAnalyticsSummary();
+    const client = getSupabaseClient();
     const settings = await this.getSettings();
 
-    let query = supabase
+    let query = client
       .from('sessions')
       .select('id')
       .eq('status', 'FINISHED');
@@ -949,12 +957,13 @@ const supabaseRepository: Repository = {
     }
 
     const { data } = await query;
-    if (!data) return fsRepository.getAnalyticsSummary();
 
     const finishedSessions: Session[] = [];
-    for (const item of data) {
-      const sess = await this.getSessionById(item.id);
-      if (sess) finishedSessions.push(sess);
+    if (data) {
+      for (const item of data) {
+        const sess = await this.getSessionById(item.id);
+        if (sess) finishedSessions.push(sess);
+      }
     }
 
     const now = new Date();
@@ -1036,16 +1045,21 @@ const supabaseRepository: Repository = {
   },
 
   async getUsers(): Promise<User[]> {
-    if (!supabase) return fsRepository.getUsers();
-    const { data } = await supabase.from('users').select('id, username, display_name, role, created_at');
+    const client = getSupabaseClient();
+    const { data } = await client.from('users').select('id, username, display_name, role, created_at');
     return (data || []) as User[];
   },
 
   async getUserByUsername(username: string): Promise<User | null> {
-    if (!supabase) return fsRepository.getUserByUsername(username);
-    const { data } = await supabase.from('users').select('*').eq('username', username).single();
+    const client = getSupabaseClient();
+    const { data } = await client.from('users').select('*').eq('username', username).single();
     return data as User | null;
   },
 };
 
-export const repository: Repository = isSupabaseConfigured ? supabaseRepository : fsRepository;
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
+// In production or when explicitly configured, use Supabase repository. In dev/test without Supabase, use local filesystem repository.
+export const repository: Repository = (isProduction || isSupabaseConfigured)
+  ? supabaseRepository
+  : fsRepository;

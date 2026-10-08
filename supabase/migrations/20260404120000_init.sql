@@ -29,8 +29,14 @@ CREATE TABLE IF NOT EXISTS public.settings (
   fifa_normal_price NUMERIC(10, 2) NOT NULL DEFAULT 15.00,
   fifa_extra_time_price NUMERIC(10, 2) NOT NULL DEFAULT 5.00,
   currency VARCHAR(10) NOT NULL DEFAULT 'ETB',
+  history_cleared_at TIMESTAMPTZ,
+  reports_reset_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure history_cleared_at and reports_reset_at columns exist if table was already created
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS history_cleared_at TIMESTAMPTZ;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS reports_reset_at TIMESTAMPTZ;
 
 -- Sessions Table
 CREATE TABLE IF NOT EXISTS public.sessions (
