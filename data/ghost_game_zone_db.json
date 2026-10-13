@@ -109,6 +109,19 @@
       "payment_status": "UNPAID",
       "created_by": "ActivePlayer",
       "created_at": "2026-10-13T12:02:52.984Z"
+    },
+    {
+      "id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "console_id": "c-1",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-13T12:24:56.888Z",
+      "total_amount": 15,
+      "payment_status": "PAID",
+      "created_by": "Tester",
+      "created_at": "2026-10-13T12:24:56.888Z",
+      "finished_at": "2026-10-13T12:24:56.907Z"
     }
   ],
   "matches": [
@@ -151,6 +164,16 @@
       "extra_time_price": 0,
       "total_price": 15,
       "created_at": "2026-10-13T12:02:52.984Z"
+    },
+    {
+      "id": "ce97f7bb-f091-4ea8-9f85-a036c517278f",
+      "session_id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:24:56.895Z"
     }
   ],
   "payments": [
@@ -160,6 +183,13 @@
       "method": "CASH",
       "amount": 50,
       "created_at": "2026-10-13T12:02:52.980Z"
+    },
+    {
+      "id": "db54b583-fdac-412e-b4f5-6116a2ca4eb2",
+      "session_id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "method": "CASH",
+      "amount": 15,
+      "created_at": "2026-10-13T12:24:56.907Z"
     }
   ],
   "adjustments": []
