@@ -57,7 +57,6 @@ export default async function RootLayout({
 }) {
   const currentUser = await getAuthUser();
   const gameZoneName = currentUser?.game_zone_name || 'Main Game Zone';
-  const isProductOwner = currentUser?.role === 'PRODUCT_OWNER' || currentUser?.username.toLowerCase() === 'ghostvon';
 
   return (
     <html lang="en" className={`dark ${gamingFont.variable} ${handwritingFont.variable} ${sansFont.variable}`} data-theme="theme-purple">
@@ -74,7 +73,7 @@ export default async function RootLayout({
 
           {/* Foreground Content */}
           <div className="relative z-10 flex flex-col min-h-screen">
-            <Navbar gameZoneName={gameZoneName} isProductOwner={isProductOwner} />
+            <Navbar gameZoneName={gameZoneName} />
             <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-12">
               {children}
             </main>
