@@ -3,15 +3,14 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw, Crown } from 'lucide-react';
+import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { initSyncEngine } from '@/lib/sync/sync-engine';
 
 interface NavbarProps {
   gameZoneName?: string;
-  isProductOwner?: boolean;
 }
 
-export function Navbar({ gameZoneName = 'Main Game Zone', isProductOwner = true }: NavbarProps) {
+export function Navbar({ gameZoneName = 'Main Game Zone' }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -48,8 +47,7 @@ export function Navbar({ gameZoneName = 'Main Game Zone', isProductOwner = true 
     router.prefetch('/history');
     router.prefetch('/reports');
     router.prefetch('/settings');
-    if (isProductOwner) router.prefetch('/admin');
-  }, [router, isProductOwner]);
+  }, [router]);
 
   // Reset pending state on pathname change
   useEffect(() => {
@@ -119,22 +117,6 @@ export function Navbar({ gameZoneName = 'Main Game Zone', isProductOwner = true 
 
         {/* Navigation Links */}
         <div className="flex items-center gap-2">
-          {isProductOwner && (
-            <Link
-              href="/admin"
-              onClick={handleNavClick('/admin')}
-              className={`p-2 rounded-xl transition-all border flex items-center gap-1 text-xs font-mono font-bold ${
-                pathname === '/admin'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                  : 'bg-[#1f2833] text-amber-400/80 border-[#45a29e]/30 hover:text-amber-300 hover:bg-amber-500/10'
-              }`}
-              title="Product Owner Admin"
-            >
-              <Crown className="w-4 h-4" />
-              <span className="hidden md:inline">Admin</span>
-            </Link>
-          )}
-
           <nav className="flex items-center gap-0.5 sm:gap-1 bg-[#0e121a] p-1 sm:p-1.5 rounded-xl border border-purple-900/40 font-gaming text-xs pointer-events-auto">
             {navItems.map((item) => {
               const Icon = item.icon;

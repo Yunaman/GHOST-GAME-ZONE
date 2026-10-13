@@ -8,7 +8,7 @@ import {
   addConsoleAction,
   toggleConsoleActiveAction,
 } from '@/app/actions';
-import { updatePasswordAction } from '@/app/admin-actions';
+import { updatePasswordWithVerificationAction } from '@/app/admin-actions';
 import { logoutAction } from '@/app/auth-actions';
 import { offlineRepository } from '@/lib/repository/offline-repository';
 import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette, LogOut, Key, Check } from 'lucide-react';
@@ -36,6 +36,7 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
   );
 
   // Password State
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -56,21 +57,27 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
     e.preventDefault();
     setPasswordMsg(null);
 
-    if (!newPassword || newPassword.length < 3) {
-      setPasswordMsg({ type: 'error', text: 'Password must be at least 3 characters long' });
+    if (!currentPassword) {
+      setPasswordMsg({ type: 'error', text: 'Current password is required' });
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 4 characters long' });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: 'error', text: 'Passwords do not match' });
+      setPasswordMsg({ type: 'error', text: 'New password and confirmation do not match' });
       return;
     }
 
     setIsUpdatingPassword(true);
     try {
-      const res = await updatePasswordAction(newPassword);
+      const res = await updatePasswordWithVerificationAction(currentPassword, newPassword, confirmPassword);
       if (res.success) {
         setPasswordMsg({ type: 'success', text: res.message || 'Password updated successfully!' });
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
@@ -196,14 +203,27 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div>
             <label className="block font-handwriting text-zinc-300 text-lg mb-1">
-              New Account Password
+              Current Password *
             </label>
             <input
               type="password"
-              placeholder="Enter new password"
+              placeholder="Current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-black/80 border border-purple-900/50 rounded-xl text-white font-mono text-sm outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label className="block font-handwriting text-zinc-300 text-lg mb-1">
+              New Password *
+            </label>
+            <input
+              type="password"
+              placeholder="New password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-black/80 border border-purple-900/50 rounded-xl text-white font-mono text-sm outline-none focus:border-amber-400"
@@ -212,7 +232,7 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
 
           <div>
             <label className="block font-handwriting text-zinc-300 text-lg mb-1">
-              Confirm New Password
+              Confirm New Password *
             </label>
             <input
               type="password"
@@ -227,7 +247,7 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
         <button
           type="button"
           onClick={handlePasswordChange}
-          disabled={isUpdatingPassword || !newPassword}
+          disabled={isUpdatingPassword || !currentPassword || !newPassword}
           className="px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-gaming font-bold text-xs rounded-xl border border-amber-500/40 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
         >
           {isUpdatingPassword ? (

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { repository } from '@/lib/repository';
-import { getAuthUser } from '@/lib/auth';
+import { getAuthUser, verifyCredentials, getAdminPassword } from '@/lib/auth';
 
 export async function getAdminDataAction() {
   try {
@@ -63,27 +63,49 @@ export async function updateCustomerGameZoneNameAction(tenantId: string, newGame
   }
 }
 
-export async function updatePasswordAction(newPassword: string) {
+export async function updatePasswordWithVerificationAction(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+) {
   try {
     const user = await getAuthUser();
     if (!user) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: 'Unauthorized: Session expired' };
     }
 
-    if (!newPassword || newPassword.trim().length < 3) {
-      return { success: false, error: 'Password must be at least 3 characters' };
+    if (!currentPassword) {
+      return { success: false, error: 'Current password is required' };
     }
 
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, error: 'New password must be at least 4 characters long' };
+    }
+
+    if (newPassword !== confirmPassword) {
+      return { success: false, error: 'New password and confirmation do not match' };
+    }
+
+    // 1. Verify current password
+    const verifyRes = await verifyCredentials(user.username, currentPassword);
+    if (!verifyRes.success) {
+      return { success: false, error: 'Incorrect current password' };
+    }
+
+    // 2. Persist new password
     if (user.role === 'PRODUCT_OWNER' || user.username.toLowerCase() === 'yunaonice') {
-      // In production/deployment, updated in tenant or environment
-      return { success: true, message: 'Password updated successfully' };
+      // Update tenant password if tenant record exists or persist to environment session state
+      await repository.updateTenantPassword('t-default', newPassword.trim());
+      revalidatePath('/admin');
+      revalidatePath('/settings');
+      return { success: true, message: 'Admin password updated successfully!' };
     } else if (user.tenant_id) {
       await repository.updateTenantPassword(user.tenant_id, newPassword.trim());
       revalidatePath('/settings');
-      return { success: true, message: 'Password updated successfully' };
+      return { success: true, message: 'Password updated successfully!' };
     }
 
-    return { success: false, error: 'Failed to update password' };
+    return { success: false, error: 'Unable to update password' };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Failed to update password' };
   }
