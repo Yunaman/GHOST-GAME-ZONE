@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  Tenant,
   Console,
   Session,
   Match,
@@ -25,6 +26,7 @@ function ensureDataDir(): void {
 const dbFilePath = path.join(dataDir, 'ghost_game_zone_db.json');
 
 export interface DatabaseSchema {
+  tenants?: Tenant[];
   users: User[];
   consoles: Console[];
   settings: Settings;
@@ -37,18 +39,31 @@ export interface DatabaseSchema {
 function getInitialData(): DatabaseSchema {
   const now = new Date().toISOString();
   return {
+    tenants: [
+      {
+        id: 't-default',
+        game_zone_name: 'Main Game Zone',
+        owner_contact_name: 'Ghostvon Owner',
+        username: 'ghostvon',
+        license_amount: 5000,
+        license_status: 'PAID',
+        status: 'ACTIVE',
+        created_at: now,
+      },
+    ],
     users: [
-      { id: 'u-1', username: 'owner', display_name: 'Owner', role: 'OWNER', pin_code: '1234', created_at: now },
-      { id: 'u-2', username: 'manager', display_name: 'Manager', role: 'MANAGER', pin_code: '1234', created_at: now },
-      { id: 'u-3', username: 'staff', display_name: 'Staff', role: 'STAFF', pin_code: '1234', created_at: now },
+      { id: 'u-1', tenant_id: 't-default', username: 'owner', display_name: 'Owner', role: 'OWNER', pin_code: '1234', created_at: now },
+      { id: 'u-2', tenant_id: 't-default', username: 'manager', display_name: 'Manager', role: 'MANAGER', pin_code: '1234', created_at: now },
+      { id: 'u-3', tenant_id: 't-default', username: 'staff', display_name: 'Staff', role: 'STAFF', pin_code: '1234', created_at: now },
     ],
     consoles: [
-      { id: 'c-1', name: 'TV 1', status: 'AVAILABLE', display_order: 1, created_at: now },
-      { id: 'c-2', name: 'TV 2', status: 'AVAILABLE', display_order: 2, created_at: now },
-      { id: 'c-3', name: 'TV 3', status: 'AVAILABLE', display_order: 3, created_at: now },
+      { id: 'c-1', tenant_id: 't-default', name: 'TV 1', status: 'AVAILABLE', display_order: 1, created_at: now },
+      { id: 'c-2', tenant_id: 't-default', name: 'TV 2', status: 'AVAILABLE', display_order: 2, created_at: now },
+      { id: 'c-3', tenant_id: 't-default', name: 'TV 3', status: 'AVAILABLE', display_order: 3, created_at: now },
     ],
     settings: {
       id: 'default',
+      tenant_id: 't-default',
       fifa_normal_price: 15.00,
       fifa_extra_time_price: 5.00,
       currency: 'ETB',
@@ -73,7 +88,12 @@ export function loadDb(): DatabaseSchema {
   }
   try {
     const raw = fs.readFileSync(dbFilePath, 'utf-8');
-    return JSON.parse(raw) as DatabaseSchema;
+    const db = JSON.parse(raw) as DatabaseSchema;
+    if (!db.tenants) {
+      db.tenants = getInitialData().tenants;
+      saveDb(db);
+    }
+    return db;
   } catch (err) {
     const initial = getInitialData();
     saveDb(initial);

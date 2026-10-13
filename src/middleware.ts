@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { validateSessionToken } from '@/lib/auth';
+import { parseSessionToken } from '@/lib/auth-token';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,7 +20,8 @@ export function middleware(request: NextRequest) {
   }
 
   const sessionCookie = request.cookies.get('ghost_session');
-  const isAuthenticated = sessionCookie?.value && validateSessionToken(sessionCookie.value);
+  const parsedToken = sessionCookie?.value ? parseSessionToken(sessionCookie.value) : null;
+  const isAuthenticated = parsedToken ? parsedToken.isValid : false;
 
   // If on login page and already authenticated -> redirect to floor '/'
   if (pathname === '/login') {
@@ -30,10 +31,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protect all application routes ('/', '/history', '/reports', '/settings')
+  // Protect all application routes ('/', '/admin', '/history', '/reports', '/settings')
   if (!isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Restrict /admin route exclusively to PRODUCT_OWNER role (username 'ghostvon')
+  if (pathname.startsWith('/admin')) {
+    if (parsedToken?.role !== 'PRODUCT_OWNER' && parsedToken?.username.toLowerCase() !== 'ghostvon') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();
@@ -43,6 +51,7 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/admin/:path*',
     '/history/:path*',
     '/reports/:path*',
     '/settings/:path*',

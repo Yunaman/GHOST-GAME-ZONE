@@ -1,4 +1,6 @@
-export type Role = 'OWNER' | 'MANAGER' | 'STAFF';
+export type Role = 'PRODUCT_OWNER' | 'OWNER' | 'MANAGER' | 'STAFF';
+
+export type TenantStatus = 'ACTIVE' | 'SUSPENDED';
 
 export type ConsoleStatus = 'AVAILABLE' | 'PLAYING' | 'FINISHED';
 
@@ -12,8 +14,20 @@ export type PaymentStatus = 'UNPAID' | 'PAID';
 
 export type PaymentMethod = 'CASH' | 'TELEBIRR' | 'CBE';
 
+export interface Tenant {
+  id: string;
+  game_zone_name: string;
+  owner_contact_name?: string;
+  username: string;
+  license_amount: number;
+  license_status: 'PAID' | 'UNPAID';
+  status: TenantStatus;
+  created_at: string;
+}
+
 export interface User {
   id: string;
+  tenant_id?: string;
   username: string;
   display_name: string;
   role: Role;
@@ -23,6 +37,7 @@ export interface User {
 
 export interface Console {
   id: string;
+  tenant_id?: string;
   name: string;
   status: ConsoleStatus;
   display_order: number;
@@ -32,6 +47,7 @@ export interface Console {
 
 export interface Settings {
   id: string;
+  tenant_id?: string;
   fifa_normal_price: number;
   fifa_extra_time_price: number;
   currency: string;
@@ -43,6 +59,7 @@ export interface Settings {
 export interface Match {
   id: string;
   session_id: string;
+  tenant_id?: string;
   match_number: number;
   base_price: number;
   extra_time: boolean;
@@ -55,6 +72,7 @@ export interface Match {
 export interface Payment {
   id: string;
   session_id: string;
+  tenant_id?: string;
   method: PaymentMethod;
   amount: number;
   reference?: string;
@@ -64,6 +82,7 @@ export interface Payment {
 export interface Adjustment {
   id: string;
   session_id: string;
+  tenant_id?: string;
   original_amount: number;
   adjustment_amount: number;
   resulting_amount: number;
@@ -75,6 +94,7 @@ export interface Adjustment {
 export interface Session {
   id: string;
   console_id: string;
+  tenant_id?: string;
   game_type: GameType;
   billing_type: BillingType;
   status: SessionStatus;
@@ -113,4 +133,11 @@ export interface AnalyticsSummary {
     CBE: number;
   };
   revenueByConsole: Record<string, number>;
+}
+
+export interface AdminStats {
+  totalCustomers: number;
+  activeCustomers: number;
+  suspendedCustomers: number;
+  totalLicenseRevenue: number;
 }

@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabase } from '@/lib/db/supabase';
 import { loadDb, saveDb } from '@/lib/db/fs-db';
+import { getAuthUser } from '@/lib/auth';
 import {
   Console,
   Session,
@@ -9,31 +10,46 @@ import {
   Settings,
   User,
   AnalyticsSummary,
+  Tenant,
+  AdminStats,
 } from '@/types';
 import { cryptoRandomUUID } from '@/lib/utils';
 
 export interface Repository {
-  getSettings(): Promise<Settings>;
-  updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings>;
-  getConsoles(): Promise<Console[]>;
-  addConsole(): Promise<Console>;
+  getSettings(tenantId?: string): Promise<Settings>;
+  updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string, tenantId?: string): Promise<Settings>;
+  getConsoles(tenantId?: string): Promise<Console[]>;
+  addConsole(tenantId?: string): Promise<Console>;
   updateConsoleName(id: string, name: string): Promise<Console>;
   toggleConsoleActive(id: string, isActive: boolean): Promise<Console>;
   getActiveSessionByConsoleId(consoleId: string): Promise<Session | null>;
   getSessionById(sessionId: string): Promise<Session | null>;
-  startSession(consoleId: string, createdBy?: string, customSessionId?: string): Promise<Session>;
+  startSession(consoleId: string, createdBy?: string, customSessionId?: string, tenantId?: string): Promise<Session>;
   addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }>;
   toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }>;
   undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }>;
   finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session>;
   createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy?: string): Promise<Adjustment>;
-  getSessionsHistory(limit?: number): Promise<Session[]>;
-  clearCompletedHistory(): Promise<{ deletedCount: number }>;
-  clearTodayHistory(): Promise<{ deletedCount: number }>;
-  resetReports(): Promise<{ deletedCount: number }>;
-  getAnalyticsSummary(): Promise<AnalyticsSummary>;
+  getSessionsHistory(limit?: number, tenantId?: string): Promise<Session[]>;
+  clearCompletedHistory(tenantId?: string): Promise<{ deletedCount: number }>;
+  clearTodayHistory(tenantId?: string): Promise<{ deletedCount: number }>;
+  resetReports(tenantId?: string): Promise<{ deletedCount: number }>;
+  getAnalyticsSummary(tenantId?: string): Promise<AnalyticsSummary>;
   getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
+
+  // Tenant / Multi-Customer Owner Admin Methods
+  getTenants(): Promise<Tenant[]>;
+  getAdminStats(): Promise<AdminStats>;
+  registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount?: number): Promise<Tenant>;
+  updateTenantStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<Tenant>;
+  updateTenantGameZoneName(id: string, gameZoneName: string): Promise<Tenant>;
+}
+
+async function resolveTenantId(providedTenantId?: string): Promise<string> {
+  if (providedTenantId) return providedTenantId;
+  const user = await getAuthUser();
+  return user?.tenant_id || 't-default';
 }
 
 function syncFsSessionTotal(sessionId: string): number {
@@ -68,17 +84,21 @@ function getNextTvNumber(consoles: Console[]): number {
 
 // --- Local Pure JS FileSystem Persistence Repository ---
 const fsRepository: Repository = {
-  async getSettings(): Promise<Settings> {
+  async getSettings(tenantId?: string): Promise<Settings> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const settingsObj = Array.isArray(db.settings) ? db.settings[0] : db.settings;
-    return settingsObj || { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
+    const settingsList = Array.isArray(db.settings) ? db.settings : [db.settings];
+    const settingsObj = settingsList.find((s) => s.tenant_id === tId) || settingsList[0];
+    return settingsObj || { id: 'default', tenant_id: tId, fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
   },
 
-  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
+  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string, tenantId?: string): Promise<Settings> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
     const current = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const updated: Settings = {
       id: current?.id || 'default',
+      tenant_id: tId,
       fifa_normal_price,
       fifa_extra_time_price,
       currency,
@@ -89,23 +109,29 @@ const fsRepository: Repository = {
     return updated;
   },
 
-  async getConsoles(): Promise<Console[]> {
+  async getConsoles(tenantId?: string): Promise<Console[]> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    return [...db.consoles].sort((a, b) => a.display_order - b.display_order);
+    return db.consoles
+      .filter((c) => (c.tenant_id || 't-default') === tId)
+      .sort((a, b) => a.display_order - b.display_order);
   },
 
-  async addConsole(): Promise<Console> {
+  async addConsole(tenantId?: string): Promise<Console> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const nextNum = getNextTvNumber(db.consoles);
+    const tenantConsoles = db.consoles.filter((c) => (c.tenant_id || 't-default') === tId);
+    const nextNum = getNextTvNumber(tenantConsoles);
     const newName = `TV ${nextNum}`;
-    const newId = `c-${nextNum}`;
+    const newId = `c-${tId}-${nextNum}`;
     const now = new Date().toISOString();
 
     const newConsole: Console = {
       id: newId,
+      tenant_id: tId,
       name: newName,
       status: 'AVAILABLE',
-      display_order: db.consoles.length + 1,
+      display_order: tenantConsoles.length + 1,
       is_active: true,
       created_at: now,
     };
@@ -163,7 +189,7 @@ const fsRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
+  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string, tenantId?: string): Promise<Session> {
     const db = loadDb();
     const consoleObj = db.consoles.find((c) => c.id === consoleId);
     if (!consoleObj) throw new Error('Console TV not found');
@@ -171,12 +197,14 @@ const fsRepository: Repository = {
     const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
     if (active) throw new Error('TV already has an active session');
 
+    const tId = tenantId || consoleObj.tenant_id || (await resolveTenantId());
     const sessionId = customSessionId || cryptoRandomUUID();
     const now = new Date().toISOString();
 
     const newSession: Session = {
       id: sessionId,
       console_id: consoleId,
+      tenant_id: tId,
       game_type: 'FIFA',
       billing_type: 'MATCH_BASED',
       status: 'ACTIVE',
@@ -226,6 +254,7 @@ const fsRepository: Repository = {
     const newMatch: Match = {
       id: matchId,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       match_number: nextMatchNum,
       base_price: basePrice,
       extra_time: false,
@@ -306,6 +335,7 @@ const fsRepository: Repository = {
     const newPayment: Payment = {
       id: paymentId,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       method: paymentMethod,
       amount: finalTotal,
       reference: reference || undefined,
@@ -344,6 +374,7 @@ const fsRepository: Repository = {
     const newAdjustment: Adjustment = {
       id,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       original_amount: originalAmount,
       adjustment_amount: adjustmentAmount,
       resulting_amount: resultingAmount,
@@ -368,12 +399,14 @@ const fsRepository: Repository = {
     return newAdjustment;
   },
 
-  async getSessionsHistory(limit = 100): Promise<Session[]> {
+  async getSessionsHistory(limit = 100, tenantId?: string): Promise<Session[]> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tId);
     const clearedAt = settings.history_cleared_at ? new Date(settings.history_cleared_at).getTime() : 0;
 
     const sorted = db.sessions
+      .filter((s) => (s.tenant_id || 't-default') === tId)
       .filter((s) => s.status === 'FINISHED')
       .filter((s) => new Date(s.finished_at || s.created_at).getTime() > clearedAt)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -387,30 +420,32 @@ const fsRepository: Repository = {
     return result;
   },
 
-  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
+  async clearCompletedHistory(tenantId?: string): Promise<{ deletedCount: number }> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
     const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const now = new Date().toISOString();
 
-    const previousHistory = await this.getSessionsHistory(1000);
+    const previousHistory = await this.getSessionsHistory(1000, tId);
     const count = previousHistory.length;
 
     if (settings) {
       settings.history_cleared_at = now;
       settings.updated_at = now;
     } else {
-      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', history_cleared_at: now, updated_at: now };
+      db.settings = { id: 'default', tenant_id: tId, fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', history_cleared_at: now, updated_at: now };
     }
 
     saveDb(db);
     return { deletedCount: count };
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    return this.clearCompletedHistory();
+  async clearTodayHistory(tenantId?: string): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory(tenantId);
   },
 
-  async resetReports(): Promise<{ deletedCount: number }> {
+  async resetReports(tenantId?: string): Promise<{ deletedCount: number }> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
     const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const now = new Date().toISOString();
@@ -419,19 +454,20 @@ const fsRepository: Repository = {
       settings.reports_reset_at = now;
       settings.updated_at = now;
     } else {
-      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', reports_reset_at: now, updated_at: now };
+      db.settings = { id: 'default', tenant_id: tId, fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', reports_reset_at: now, updated_at: now };
     }
 
     saveDb(db);
     return { deletedCount: 1 };
   },
 
-  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  async getAnalyticsSummary(tenantId?: string): Promise<AnalyticsSummary> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tId);
     const resetAt = settings.reports_reset_at ? new Date(settings.reports_reset_at).getTime() : 0;
 
-    const allFinishedSessions = db.sessions.filter((s) => s.status === 'FINISHED');
+    const allFinishedSessions = db.sessions.filter((s) => (s.tenant_id || 't-default') === tId && s.status === 'FINISHED');
     const finishedSessions: Session[] = [];
     for (const item of allFinishedSessions) {
       if (new Date(item.finished_at || item.created_at).getTime() > resetAt) {
@@ -468,7 +504,7 @@ const fsRepository: Repository = {
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
 
-    const dbConsoles = db.consoles || [];
+    const dbConsoles = await this.getConsoles(tId);
     for (const c of dbConsoles) {
       revByConsole[c.name] = 0;
     }
@@ -530,6 +566,79 @@ const fsRepository: Repository = {
     const user = db.users.find((u) => u.username === username);
     return user || null;
   },
+
+  async getTenants(): Promise<Tenant[]> {
+    const db = loadDb();
+    return db.tenants || [];
+  },
+
+  async getAdminStats(): Promise<AdminStats> {
+    const db = loadDb();
+    const tenants = db.tenants || [];
+    const totalCustomers = tenants.length;
+    const activeCustomers = tenants.filter((t) => t.status === 'ACTIVE').length;
+    const suspendedCustomers = tenants.filter((t) => t.status === 'SUSPENDED').length;
+    const totalLicenseRevenue = tenants.reduce((acc, t) => acc + (t.license_amount || 5000), 0);
+
+    return {
+      totalCustomers,
+      activeCustomers,
+      suspendedCustomers,
+      totalLicenseRevenue,
+    };
+  },
+
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+    const db = loadDb();
+    if (!db.tenants) db.tenants = [];
+
+    const existingUsername = db.tenants.find((t) => t.username.toLowerCase() === username.toLowerCase());
+    if (existingUsername) throw new Error(`Username "${username}" is already taken.`);
+
+    const tenantId = `t-${cryptoRandomUUID().slice(0, 8)}`;
+    const now = new Date().toISOString();
+
+    const newTenant: Tenant = {
+      id: tenantId,
+      game_zone_name: gameZoneName,
+      owner_contact_name: ownerContactName,
+      username: username.toLowerCase().trim(),
+      license_amount: licenseAmount,
+      license_status: 'PAID',
+      status: 'ACTIVE',
+      created_at: now,
+    };
+
+    db.tenants.push(newTenant);
+
+    // Create 3 default TVs for this new customer
+    db.consoles.push(
+      { id: `c-${tenantId}-1`, tenant_id: tenantId, name: 'TV 1', status: 'AVAILABLE', display_order: 1, is_active: true, created_at: now },
+      { id: `c-${tenantId}-2`, tenant_id: tenantId, name: 'TV 2', status: 'AVAILABLE', display_order: 2, is_active: true, created_at: now },
+      { id: `c-${tenantId}-3`, tenant_id: tenantId, name: 'TV 3', status: 'AVAILABLE', display_order: 3, is_active: true, created_at: now }
+    );
+
+    saveDb(db);
+    return newTenant;
+  },
+
+  async updateTenantStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<Tenant> {
+    const db = loadDb();
+    const tenant = (db.tenants || []).find((t) => t.id === id);
+    if (!tenant) throw new Error('Customer tenant not found');
+    tenant.status = status;
+    saveDb(db);
+    return tenant;
+  },
+
+  async updateTenantGameZoneName(id: string, gameZoneName: string): Promise<Tenant> {
+    const db = loadDb();
+    const tenant = (db.tenants || []).find((t) => t.id === id);
+    if (!tenant) throw new Error('Customer tenant not found');
+    tenant.game_zone_name = gameZoneName;
+    saveDb(db);
+    return tenant;
+  },
 };
 
 // Helper to check Supabase client instance
@@ -542,17 +651,20 @@ function getSupabaseClient() {
 
 // --- Supabase Implementation ---
 const supabaseRepository: Repository = {
-  async getSettings(): Promise<Settings> {
+  async getSettings(tenantId?: string): Promise<Settings> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const { data } = await client.from('settings').select('*').eq('id', 'default').single();
+    const { data } = await client.from('settings').select('*').eq('tenant_id', tId).limit(1);
+    const settingsData = data && data.length > 0 ? data[0] : null;
 
-    let history_cleared_at = data?.history_cleared_at || undefined;
-    let reports_reset_at = data?.reports_reset_at || undefined;
+    let history_cleared_at = settingsData?.history_cleared_at || undefined;
+    let reports_reset_at = settingsData?.reports_reset_at || undefined;
 
     if (!history_cleared_at) {
       const { data: adjClear } = await client
         .from('adjustments')
         .select('reason')
+        .eq('tenant_id', tId)
         .like('reason', 'SYSTEM_HISTORY_CLEAR:%')
         .order('created_at', { ascending: false })
         .limit(1);
@@ -566,6 +678,7 @@ const supabaseRepository: Repository = {
       const { data: adjReset } = await client
         .from('adjustments')
         .select('reason')
+        .eq('tenant_id', tId)
         .like('reason', 'SYSTEM_REPORTS_RESET:%')
         .order('created_at', { ascending: false })
         .limit(1);
@@ -576,50 +689,82 @@ const supabaseRepository: Repository = {
     }
 
     return {
-      id: data?.id || 'default',
-      fifa_normal_price: Number(data?.fifa_normal_price || 15.00),
-      fifa_extra_time_price: Number(data?.fifa_extra_time_price || 5.00),
-      currency: data?.currency || 'ETB',
+      id: settingsData?.id || 'default',
+      tenant_id: tId,
+      fifa_normal_price: Number(settingsData?.fifa_normal_price || 15.00),
+      fifa_extra_time_price: Number(settingsData?.fifa_extra_time_price || 5.00),
+      currency: settingsData?.currency || 'ETB',
       history_cleared_at,
       reports_reset_at,
-      updated_at: data?.updated_at || new Date().toISOString(),
+      updated_at: settingsData?.updated_at || new Date().toISOString(),
     };
   },
 
-  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
+  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string, tenantId?: string): Promise<Settings> {
+    const tId = await resolveTenantId(tenantId);
+    const client = getSupabaseClient();
+
+    const { data: existing } = await client.from('settings').select('id').eq('tenant_id', tId).limit(1);
+
+    if (existing && existing.length > 0) {
+      const { data, error } = await client
+        .from('settings')
+        .update({ fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
+        .eq('id', existing[0].id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return {
+        id: data.id,
+        tenant_id: tId,
+        fifa_normal_price: Number(data.fifa_normal_price),
+        fifa_extra_time_price: Number(data.fifa_extra_time_price),
+        currency: data.currency,
+        updated_at: data.updated_at,
+      };
+    } else {
+      const { data, error } = await client
+        .from('settings')
+        .insert({ tenant_id: tId, fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return {
+        id: data.id,
+        tenant_id: tId,
+        fifa_normal_price: Number(data.fifa_normal_price),
+        fifa_extra_time_price: Number(data.fifa_extra_time_price),
+        currency: data.currency,
+        updated_at: data.updated_at,
+      };
+    }
+  },
+
+  async getConsoles(tenantId?: string): Promise<Console[]> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
     const { data, error } = await client
-      .from('settings')
-      .update({ fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
-      .eq('id', 'default')
-      .select()
-      .single();
+      .from('consoles')
+      .select('*')
+      .eq('tenant_id', tId)
+      .order('display_order', { ascending: true });
 
-    if (error) throw new Error(error.message);
-    return {
-      id: data.id,
-      fifa_normal_price: Number(data.fifa_normal_price),
-      fifa_extra_time_price: Number(data.fifa_extra_time_price),
-      currency: data.currency,
-      updated_at: data.updated_at,
-    };
-  },
-
-  async getConsoles(): Promise<Console[]> {
-    const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').select('*').order('display_order', { ascending: true });
     if (error || !data) return [];
     return data as Console[];
   },
 
-  async addConsole(): Promise<Console> {
+  async addConsole(tenantId?: string): Promise<Console> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const consoles = await this.getConsoles();
+    const consoles = await this.getConsoles(tId);
     const nextNum = getNextTvNumber(consoles);
     const name = `TV ${nextNum}`;
 
     const { data, error } = await client.from('consoles').insert({
       name,
+      tenant_id: tId,
       status: 'AVAILABLE',
       display_order: consoles.length + 1,
       is_active: true
@@ -687,7 +832,7 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
+  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string, tenantId?: string): Promise<Session> {
     const client = getSupabaseClient();
 
     const { data: existing } = await client
@@ -702,8 +847,11 @@ const supabaseRepository: Repository = {
       throw new Error('TV already has an active session');
     }
 
+    const tId = await resolveTenantId(tenantId);
+
     const insertPayload: any = {
       console_id: consoleId,
+      tenant_id: tId,
       game_type: 'FIFA',
       billing_type: 'MATCH_BASED',
       status: 'ACTIVE',
@@ -748,7 +896,7 @@ const supabaseRepository: Repository = {
       }
     }
 
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(session.tenant_id);
     const nextMatchNum = (session.matches?.length || 0) + 1;
     const basePrice = settings.fifa_normal_price;
 
@@ -756,6 +904,7 @@ const supabaseRepository: Repository = {
       .from('matches')
       .insert({
         session_id: sessionId,
+        tenant_id: session.tenant_id || 't-default',
         match_number: nextMatchNum,
         base_price: basePrice,
         extra_time: false,
@@ -792,7 +941,7 @@ const supabaseRepository: Repository = {
     const match = session.matches?.find((m) => m.id === matchId);
     if (!match) throw new Error('Match not found');
 
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(session.tenant_id);
     const isAdding = !match.extra_time;
     const extraPrice = isAdding ? settings.fifa_extra_time_price : 0.00;
     const totalPrice = match.base_price + extraPrice;
@@ -859,6 +1008,7 @@ const supabaseRepository: Repository = {
 
     await client.from('payments').insert({
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       method: paymentMethod,
       amount: finalTotal,
       reference: reference || null,
@@ -893,6 +1043,7 @@ const supabaseRepository: Repository = {
       .from('adjustments')
       .insert({
         session_id: sessionId,
+        tenant_id: session.tenant_id || 't-default',
         original_amount: originalAmount,
         adjustment_amount: adjustmentAmount,
         resulting_amount: resultingAmount,
@@ -918,12 +1069,14 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async getSessionsHistory(limit = 100): Promise<Session[]> {
+  async getSessionsHistory(limit = 100, tenantId?: string): Promise<Session[]> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tId);
     const query = client
       .from('sessions')
       .select('id, created_at, finished_at')
+      .eq('tenant_id', tId)
       .eq('status', 'FINISHED')
       .order('created_at', { ascending: false })
       .limit(limit * 2);
@@ -948,24 +1101,26 @@ const supabaseRepository: Repository = {
     return result;
   },
 
-  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
+  async clearCompletedHistory(tenantId?: string): Promise<{ deletedCount: number }> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
     const now = new Date().toISOString();
-    const previousHistory = await this.getSessionsHistory(1000);
+    const previousHistory = await this.getSessionsHistory(1000, tId);
 
     // 1. Attempt to update settings table if column history_cleared_at exists
     await client
       .from('settings')
       .update({ history_cleared_at: now, updated_at: now })
-      .eq('id', 'default');
+      .eq('tenant_id', tId);
 
     // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').limit(1);
+    const { data: session } = await client.from('sessions').select('id').eq('tenant_id', tId).limit(1);
     const sessionId = session && session.length > 0 ? session[0].id : null;
 
     if (sessionId) {
       await client.from('adjustments').insert({
         session_id: sessionId,
+        tenant_id: tId,
         original_amount: 0,
         adjustment_amount: 0,
         resulting_amount: 0,
@@ -977,11 +1132,12 @@ const supabaseRepository: Repository = {
     return { deletedCount: previousHistory.length };
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    return this.clearCompletedHistory();
+  async clearTodayHistory(tenantId?: string): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory(tenantId);
   },
 
-  async resetReports(): Promise<{ deletedCount: number }> {
+  async resetReports(tenantId?: string): Promise<{ deletedCount: number }> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
     const now = new Date().toISOString();
 
@@ -989,15 +1145,16 @@ const supabaseRepository: Repository = {
     await client
       .from('settings')
       .update({ reports_reset_at: now, updated_at: now })
-      .eq('id', 'default');
+      .eq('tenant_id', tId);
 
     // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').limit(1);
+    const { data: session } = await client.from('sessions').select('id').eq('tenant_id', tId).limit(1);
     const sessionId = session && session.length > 0 ? session[0].id : null;
 
     if (sessionId) {
       await client.from('adjustments').insert({
         session_id: sessionId,
+        tenant_id: tId,
         original_amount: 0,
         adjustment_amount: 0,
         resulting_amount: 0,
@@ -1009,13 +1166,15 @@ const supabaseRepository: Repository = {
     return { deletedCount: 1 };
   },
 
-  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  async getAnalyticsSummary(tenantId?: string): Promise<AnalyticsSummary> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tId);
 
     const { data } = await client
       .from('sessions')
       .select('id, created_at, finished_at')
+      .eq('tenant_id', tId)
       .eq('status', 'FINISHED');
 
     const resetAtTime = settings.reports_reset_at
@@ -1061,7 +1220,7 @@ const supabaseRepository: Repository = {
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
 
-    const dbConsoles = await this.getConsoles();
+    const dbConsoles = await this.getConsoles(tId);
     for (const c of dbConsoles) {
       revByConsole[c.name] = 0;
     }
@@ -1123,6 +1282,98 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const { data } = await client.from('users').select('*').eq('username', username).single();
     return data as User | null;
+  },
+
+  async getTenants(): Promise<Tenant[]> {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('tenants').select('*').order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return data as Tenant[];
+  },
+
+  async getAdminStats(): Promise<AdminStats> {
+    const tenants = await this.getTenants();
+    const totalCustomers = tenants.length;
+    const activeCustomers = tenants.filter((t) => t.status === 'ACTIVE').length;
+    const suspendedCustomers = tenants.filter((t) => t.status === 'SUSPENDED').length;
+    const totalLicenseRevenue = tenants.reduce((acc, t) => acc + Number(t.license_amount || 5000), 0);
+
+    return {
+      totalCustomers,
+      activeCustomers,
+      suspendedCustomers,
+      totalLicenseRevenue,
+    };
+  },
+
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+    const client = getSupabaseClient();
+    const lowerUsername = username.toLowerCase().trim();
+
+    const { data: existing } = await client
+      .from('tenants')
+      .select('id')
+      .eq('username', lowerUsername)
+      .single();
+
+    if (existing) {
+      throw new Error(`Username "${username}" is already taken.`);
+    }
+
+    const tenantId = `t-${cryptoRandomUUID().slice(0, 8)}`;
+
+    const { data: tenant, error } = await client
+      .from('tenants')
+      .insert({
+        id: tenantId,
+        game_zone_name: gameZoneName,
+        owner_contact_name: ownerContactName,
+        username: lowerUsername,
+        license_amount: licenseAmount,
+        license_status: 'PAID',
+        status: 'ACTIVE',
+      })
+      .select()
+      .single();
+
+    if (error || !tenant) {
+      throw new Error(error?.message || 'Failed to register customer tenant');
+    }
+
+    // Create 3 default TV consoles for new tenant
+    await client.from('consoles').insert([
+      { tenant_id: tenantId, name: 'TV 1', status: 'AVAILABLE', display_order: 1, is_active: true },
+      { tenant_id: tenantId, name: 'TV 2', status: 'AVAILABLE', display_order: 2, is_active: true },
+      { tenant_id: tenantId, name: 'TV 3', status: 'AVAILABLE', display_order: 3, is_active: true },
+    ]);
+
+    return tenant as Tenant;
+  },
+
+  async updateTenantStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<Tenant> {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from('tenants')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to update customer status');
+    return data as Tenant;
+  },
+
+  async updateTenantGameZoneName(id: string, gameZoneName: string): Promise<Tenant> {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from('tenants')
+      .update({ game_zone_name: gameZoneName })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to update Game Zone name');
+    return data as Tenant;
   },
 };
 
