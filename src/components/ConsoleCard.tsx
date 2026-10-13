@@ -8,7 +8,6 @@ import {
   toggleMatchExtraTimeAction,
   undoLastMatchAction,
 } from '@/app/actions';
-import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency, cryptoRandomUUID } from '@/lib/utils';
 import { FinishSessionModal } from '@/components/FinishSessionModal';
 import {
@@ -57,7 +56,6 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     } else {
       setCurrentSession((prev) => {
         if (!prev) return initialSession;
-        // If same active session, merge matches so new matches are never wiped by stale server props
         if (prev.id === initialSession.id) {
           const prevMatches = prev.matches || [];
           const incomingMatches = initialSession.matches || [];
@@ -81,7 +79,7 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
   // --- ACTION 1: START SESSION ---
   async function handleStartSession() {
     const now = Date.now();
-    if (now - lastTapTimeRef.current < 200) return;
+    if (now - lastTapTimeRef.current < 250) return;
     lastTapTimeRef.current = now;
 
     setErrorMsg(null);
@@ -107,9 +105,6 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     setCurrentTv((prev) => ({ ...prev, status: 'PLAYING' }));
     setCurrentSession(optimisticSession);
 
-    // Save locally to IndexedDB immediately
-    offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId).catch(() => {});
-
     startTransition(async () => {
       try {
         const res = await startSessionAction(currentTv.id, 'Staff', tempSessionId);
@@ -132,7 +127,7 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
   async function handleAddMatch() {
     if (!currentSession) return;
     const now = Date.now();
-    if (now - lastTapTimeRef.current < 150) return;
+    if (now - lastTapTimeRef.current < 200) return;
     lastTapTimeRef.current = now;
 
     setErrorMsg(null);
@@ -163,16 +158,12 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       total_amount: updatedTotal,
     });
 
-    // Save locally to IndexedDB immediately
-    offlineRepository.addMatch(previousSession.id, idempotencyKey).catch(() => {});
-
     startTransition(async () => {
       try {
         const res = await addMatchAction(previousSession.id, idempotencyKey);
         if (res.success && res.data) {
           setCurrentSession((prev) => {
             if (!prev) return prev;
-            // Update match ID if returned from server
             const finalMatches = prev.matches?.map((m) =>
               m.client_idempotency_key === idempotencyKey ? res.data.match : m
             ) || [];
@@ -226,9 +217,6 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       total_amount: updatedTotal,
     });
 
-    // Save locally to IndexedDB immediately
-    offlineRepository.toggleMatchExtraTime(previousSession.id, matchId).catch(() => {});
-
     startTransition(async () => {
       try {
         const res = await toggleMatchExtraTimeAction(previousSession.id, matchId);
@@ -267,9 +255,6 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       matches: updatedMatches,
       total_amount: updatedTotal,
     });
-
-    // Save locally to IndexedDB immediately
-    offlineRepository.undoLastMatch(previousSession.id).catch(() => {});
 
     startTransition(async () => {
       try {
