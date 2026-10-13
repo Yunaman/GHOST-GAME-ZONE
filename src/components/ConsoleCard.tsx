@@ -8,7 +8,6 @@ import {
   toggleMatchExtraTimeAction,
   undoLastMatchAction,
 } from '@/app/actions';
-import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency, cryptoRandomUUID } from '@/lib/utils';
 import { FinishSessionModal } from '@/components/FinishSessionModal';
 import {
@@ -35,7 +34,7 @@ interface ConsoleCardProps {
 export function ConsoleCard({ consoleState, settings, onSessionFinished }: ConsoleCardProps) {
   const { console: initialTv, active_session: initialSession } = consoleState;
 
-  // Local optimistic state for instant (<10ms) tap responses
+  // Local state for instant (<10ms) tap responses
   const [currentTv, setCurrentTv] = useState<Console>(initialTv);
   const [currentSession, setCurrentSession] = useState<Session | null>(initialSession || null);
 
@@ -47,10 +46,28 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
   // Debounce guard to prevent rapid double tap duplicates
   const lastTapTimeRef = useRef<number>(0);
 
-  // Sync props when parent re-renders unless an optimistic action is pending
+  // Sync props ONLY when session ID changes or status changes from server
   useEffect(() => {
     setCurrentTv(initialTv);
-    setCurrentSession(initialSession || null);
+    if (!initialSession) {
+      if (initialTv.status === 'AVAILABLE') {
+        setCurrentSession(null);
+      }
+    } else {
+      setCurrentSession((prev) => {
+        if (!prev) return initialSession;
+        // If same active session, merge matches so new matches are never wiped by stale server props
+        if (prev.id === initialSession.id) {
+          const prevMatches = prev.matches || [];
+          const incomingMatches = initialSession.matches || [];
+          if (prevMatches.length > incomingMatches.length) {
+            return prev;
+          }
+          return initialSession;
+        }
+        return initialSession;
+      });
+    }
   }, [initialTv, initialSession]);
 
   const isPlaying = currentTv.status === 'PLAYING' && !!currentSession;
@@ -60,7 +77,7 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
   const fifaNormalPrice = settings?.fifa_normal_price ?? 15;
   const fifaExtraTimePrice = settings?.fifa_extra_time_price ?? 5;
 
-  // --- INSTANT OPTIMISTIC ACTION 1: START SESSION ---
+  // --- ACTION 1: START SESSION ---
   async function handleStartSession() {
     const now = Date.now();
     if (now - lastTapTimeRef.current < 200) return;
@@ -95,23 +112,19 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
         if (res.success && res.data) {
           setCurrentSession(res.data);
         } else {
-          // Offline fallback
-          const localSession = await offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId);
-          setCurrentSession(localSession);
+          setErrorMsg(res.error || 'Failed to start session');
+          setCurrentTv(initialTv);
+          setCurrentSession(initialSession || null);
         }
       } catch (err: any) {
-        // Offline fallback
-        try {
-          const localSession = await offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId);
-          setCurrentSession(localSession);
-        } catch (offlineErr: any) {
-          setErrorMsg(offlineErr?.message || 'Error starting session');
-        }
+        setErrorMsg(err?.message || 'Error starting session');
+        setCurrentTv(initialTv);
+        setCurrentSession(initialSession || null);
       }
     });
   }
 
-  // --- INSTANT OPTIMISTIC ACTION 2: ADD MATCH ---
+  // --- ACTION 2: ADD MATCH ---
   async function handleAddMatch() {
     if (!currentSession) return;
     const now = Date.now();
@@ -149,20 +162,31 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     startTransition(async () => {
       try {
         const res = await addMatchAction(previousSession.id, idempotencyKey);
-        if (!res.success) {
-          await offlineRepository.addMatch(previousSession.id, idempotencyKey);
+        if (res.success && res.data) {
+          setCurrentSession((prev) => {
+            if (!prev) return prev;
+            // Update match ID if returned from server
+            const finalMatches = prev.matches?.map((m) =>
+              m.client_idempotency_key === idempotencyKey ? res.data.match : m
+            ) || [];
+            return {
+              ...prev,
+              matches: finalMatches,
+              total_amount: res.data.sessionTotal,
+            };
+          });
+        } else {
+          setErrorMsg(res.error || 'Failed to add match');
+          setCurrentSession(previousSession); // Rollback
         }
       } catch (err: any) {
-        try {
-          await offlineRepository.addMatch(previousSession.id, idempotencyKey);
-        } catch (offlineErr: any) {
-          setErrorMsg(offlineErr?.message || 'Error adding match');
-        }
+        setErrorMsg(err?.message || 'Error adding match');
+        setCurrentSession(previousSession); // Rollback
       }
     });
   }
 
-  // --- INSTANT OPTIMISTIC ACTION 3: TOGGLE EXTRA TIME ---
+  // --- ACTION 3: TOGGLE EXTRA TIME ---
   async function handleToggleExtraTime(matchId: string) {
     if (!currentSession) return;
     setErrorMsg(null);
@@ -198,20 +222,26 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     startTransition(async () => {
       try {
         const res = await toggleMatchExtraTimeAction(previousSession.id, matchId);
-        if (!res.success) {
-          await offlineRepository.toggleMatchExtraTime(previousSession.id, matchId);
+        if (res.success && res.data) {
+          setCurrentSession((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              total_amount: res.data.sessionTotal,
+            };
+          });
+        } else {
+          setErrorMsg(res.error || 'Failed to toggle extra time');
+          setCurrentSession(previousSession); // Rollback
         }
       } catch (err: any) {
-        try {
-          await offlineRepository.toggleMatchExtraTime(previousSession.id, matchId);
-        } catch (offlineErr: any) {
-          setErrorMsg(offlineErr?.message || 'Error toggling extra time');
-        }
+        setErrorMsg(err?.message || 'Error toggling extra time');
+        setCurrentSession(previousSession); // Rollback
       }
     });
   }
 
-  // --- INSTANT OPTIMISTIC ACTION 4: UNDO LAST MATCH ---
+  // --- ACTION 4: UNDO LAST MATCH ---
   async function handleUndoLastMatch() {
     if (!currentSession || !currentSession.matches || currentSession.matches.length === 0) return;
     if (!confirm('Undo / remove the last recorded match?')) return;
@@ -231,20 +261,26 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     startTransition(async () => {
       try {
         const res = await undoLastMatchAction(previousSession.id);
-        if (!res.success) {
-          await offlineRepository.undoLastMatch(previousSession.id);
+        if (res.success && res.data) {
+          setCurrentSession((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              total_amount: res.data.sessionTotal,
+            };
+          });
+        } else {
+          setErrorMsg(res.error || 'Failed to undo match');
+          setCurrentSession(previousSession); // Rollback
         }
       } catch (err: any) {
-        try {
-          await offlineRepository.undoLastMatch(previousSession.id);
-        } catch (offlineErr: any) {
-          setErrorMsg(offlineErr?.message || 'Error undoing match');
-        }
+        setErrorMsg(err?.message || 'Error undoing match');
+        setCurrentSession(previousSession); // Rollback
       }
     });
   }
 
-  // --- INSTANT OPTIMISTIC ACTION 5: FINISH SESSION OPTIMISTIC CALLBACK ---
+  // --- ACTION 5: FINISH SESSION OPTIMISTIC CALLBACK ---
   function handleSessionFinishedOptimistic() {
     setShowFinishModal(false);
     setCurrentTv((prev) => ({ ...prev, status: 'AVAILABLE' }));
