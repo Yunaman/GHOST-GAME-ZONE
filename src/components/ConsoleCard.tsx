@@ -8,6 +8,7 @@ import {
   toggleMatchExtraTimeAction,
   undoLastMatchAction,
 } from '@/app/actions';
+import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency, cryptoRandomUUID } from '@/lib/utils';
 import { FinishSessionModal } from '@/components/FinishSessionModal';
 import {
@@ -106,6 +107,9 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
     setCurrentTv((prev) => ({ ...prev, status: 'PLAYING' }));
     setCurrentSession(optimisticSession);
 
+    // Save locally to IndexedDB immediately
+    offlineRepository.startSession(currentTv.id, 'Staff', tempSessionId).catch(() => {});
+
     startTransition(async () => {
       try {
         const res = await startSessionAction(currentTv.id, 'Staff', tempSessionId);
@@ -158,6 +162,9 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       matches: updatedMatches,
       total_amount: updatedTotal,
     });
+
+    // Save locally to IndexedDB immediately
+    offlineRepository.addMatch(previousSession.id, idempotencyKey).catch(() => {});
 
     startTransition(async () => {
       try {
@@ -219,6 +226,9 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       total_amount: updatedTotal,
     });
 
+    // Save locally to IndexedDB immediately
+    offlineRepository.toggleMatchExtraTime(previousSession.id, matchId).catch(() => {});
+
     startTransition(async () => {
       try {
         const res = await toggleMatchExtraTimeAction(previousSession.id, matchId);
@@ -257,6 +267,9 @@ export function ConsoleCard({ consoleState, settings, onSessionFinished }: Conso
       matches: updatedMatches,
       total_amount: updatedTotal,
     });
+
+    // Save locally to IndexedDB immediately
+    offlineRepository.undoLastMatch(previousSession.id).catch(() => {});
 
     startTransition(async () => {
       try {
