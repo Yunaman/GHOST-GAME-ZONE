@@ -7,6 +7,7 @@ import { IntroSplash } from '@/components/IntroSplash';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { MadeByYuna } from '@/components/MadeByYuna';
 import { InstallAppCard } from '@/components/InstallAppCard';
+import { getAuthUser } from '@/lib/auth';
 
 const gamingFont = Orbitron({
   subsets: ['latin'],
@@ -30,13 +31,13 @@ const sansFont = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Ghost Game Zone 👻 | FIFA Gaming Center',
-  description: 'Production gaming center management system for Ghost Game Zone in Ethiopia',
+  title: 'Ghost Game Center 👻 | Multi-Customer Gaming System',
+  description: 'Production gaming center management system for Ghost Game Center in Ethiopia',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Ghost Game Zone',
+    title: 'Ghost Game Center',
   },
 };
 
@@ -49,11 +50,15 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const currentUser = await getAuthUser();
+  const gameZoneName = currentUser?.game_zone_name || 'Main Game Zone';
+  const isProductOwner = currentUser?.role === 'PRODUCT_OWNER' || currentUser?.username.toLowerCase() === 'ghostvon';
+
   return (
     <html lang="en" className={`dark ${gamingFont.variable} ${handwritingFont.variable} ${sansFont.variable}`} data-theme="theme-purple">
       <head>
@@ -69,7 +74,7 @@ export default function RootLayout({
 
           {/* Foreground Content */}
           <div className="relative z-10 flex flex-col min-h-screen">
-            <Navbar />
+            <Navbar gameZoneName={gameZoneName} isProductOwner={isProductOwner} />
             <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-12">
               {children}
             </main>
@@ -81,7 +86,7 @@ export default function RootLayout({
             <footer className="w-full border-t border-purple-900/30 bg-black/60 backdrop-blur-md py-6 px-4 text-center">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-zinc-400">
                 <span className="font-gaming font-bold tracking-widest text-purple-300">
-                  👻 GHOST GAME ZONE V1
+                  👻 GHOST GAME CENTER V1
                 </span>
                 <span className="hidden sm:inline text-zinc-600">•</span>
                 <MadeByYuna size="sm" />
@@ -96,7 +101,7 @@ export default function RootLayout({
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    console.log('Ghost Game Zone SW registered:', reg.scope);
+                    console.log('Ghost Game Center SW registered:', reg.scope);
                   }).catch(function(err) {
                     console.log('SW registration failed:', err);
                   });

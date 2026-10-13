@@ -16,6 +16,8 @@ import {
   Settings,
   User,
   AnalyticsSummary,
+  Tenant,
+  AdminStats,
 } from '@/types';
 import { cryptoRandomUUID } from '@/lib/utils';
 
@@ -25,6 +27,7 @@ export const offlineRepository: Repository = {
     const settings = await idbGet<Settings>('settings', 'default');
     return settings || {
       id: 'default',
+      tenant_id: 't-default',
       fifa_normal_price: 15.00,
       fifa_extra_time_price: 5.00,
       currency: 'ETB',
@@ -73,6 +76,7 @@ export const offlineRepository: Repository = {
     const nextNum = maxNum + 1;
     const newConsole: Console = {
       id: `c-${nextNum}`,
+      tenant_id: 't-default',
       name: `TV ${nextNum}`,
       status: 'AVAILABLE',
       display_order: consoles.length + 1,
@@ -166,6 +170,7 @@ export const offlineRepository: Repository = {
     const newSession: Session = {
       id: sessionId,
       console_id: consoleId,
+      tenant_id: consoleObj.tenant_id || 't-default',
       game_type: 'FIFA',
       billing_type: 'MATCH_BASED',
       status: 'ACTIVE',
@@ -223,6 +228,7 @@ export const offlineRepository: Repository = {
     const newMatch: Match = {
       id: matchId,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       match_number: nextMatchNum,
       base_price: basePrice,
       extra_time: false,
@@ -341,6 +347,7 @@ export const offlineRepository: Repository = {
     const payment: Payment = {
       id: paymentId,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       method: paymentMethod,
       amount: finalTotal,
       reference: reference || undefined,
@@ -394,6 +401,7 @@ export const offlineRepository: Repository = {
     const adjustment: Adjustment = {
       id,
       session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
       original_amount: originalAmount,
       adjustment_amount: adjustmentAmount,
       resulting_amount: resultingAmount,
@@ -567,5 +575,58 @@ export const offlineRepository: Repository = {
   async getUserByUsername(username: string): Promise<User | null> {
     const users = await this.getUsers();
     return users.find((u) => u.username === username) || null;
+  },
+
+  async getTenants(): Promise<Tenant[]> {
+    return [
+      {
+        id: 't-default',
+        game_zone_name: 'Main Game Zone',
+        owner_contact_name: 'Ghostvon Owner',
+        username: 'ghostvon',
+        license_amount: 5000,
+        license_status: 'PAID',
+        status: 'ACTIVE',
+        created_at: new Date().toISOString(),
+      },
+    ];
+  },
+
+  async getAdminStats(): Promise<AdminStats> {
+    const tenants = await this.getTenants();
+    return {
+      totalCustomers: tenants.length,
+      activeCustomers: tenants.filter((t) => t.status === 'ACTIVE').length,
+      suspendedCustomers: tenants.filter((t) => t.status === 'SUSPENDED').length,
+      totalLicenseRevenue: tenants.reduce((acc, t) => acc + (t.license_amount || 5000), 0),
+    };
+  },
+
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+    const tenant: Tenant = {
+      id: `t-${cryptoRandomUUID().slice(0, 8)}`,
+      game_zone_name: gameZoneName,
+      owner_contact_name: ownerContactName,
+      username: username.toLowerCase().trim(),
+      license_amount: licenseAmount,
+      license_status: 'PAID',
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    };
+    return tenant;
+  },
+
+  async updateTenantStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<Tenant> {
+    const tenants = await this.getTenants();
+    const tenant = tenants[0];
+    tenant.status = status;
+    return tenant;
+  },
+
+  async updateTenantGameZoneName(id: string, gameZoneName: string): Promise<Tenant> {
+    const tenants = await this.getTenants();
+    const tenant = tenants[0];
+    tenant.game_zone_name = gameZoneName;
+    return tenant;
   },
 };

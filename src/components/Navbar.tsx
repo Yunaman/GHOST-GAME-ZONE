@@ -3,10 +3,15 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw, Crown } from 'lucide-react';
 import { initSyncEngine } from '@/lib/sync/sync-engine';
 
-export function Navbar() {
+interface NavbarProps {
+  gameZoneName?: string;
+  isProductOwner?: boolean;
+}
+
+export function Navbar({ gameZoneName = 'Main Game Zone', isProductOwner = true }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -43,7 +48,8 @@ export function Navbar() {
     router.prefetch('/history');
     router.prefetch('/reports');
     router.prefetch('/settings');
-  }, [router]);
+    if (isProductOwner) router.prefetch('/admin');
+  }, [router, isProductOwner]);
 
   // Reset pending state on pathname change
   useEffect(() => {
@@ -70,7 +76,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-[#06070a]/90 backdrop-blur-md border-b border-purple-900/40 px-3 sm:px-4 py-2.5 pointer-events-auto">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-        {/* Brand */}
+        {/* Brand Header */}
         <Link
           href="/"
           onClick={handleNavClick('/')}
@@ -81,11 +87,11 @@ export function Navbar() {
           </div>
           <div>
             <h1 className="font-gaming font-black tracking-wider text-sm sm:text-base text-white leading-none flex items-center gap-1.5">
-              <span>GHOST GAME ZONE</span>
+              <span>GHOST GAME CENTER</span>
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="font-handwriting text-purple-300 text-xs sm:text-sm leading-none">
-                FIFA gaming center
+                Welcome back, <strong className="text-[#66fcf1] font-bold">{gameZoneName}</strong>
               </span>
 
               {/* Online / Offline Sync Indicator */}
@@ -113,6 +119,22 @@ export function Navbar() {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-2">
+          {isProductOwner && (
+            <Link
+              href="/admin"
+              onClick={handleNavClick('/admin')}
+              className={`p-2 rounded-xl transition-all border flex items-center gap-1 text-xs font-mono font-bold ${
+                pathname === '/admin'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                  : 'bg-[#1f2833] text-amber-400/80 border-[#45a29e]/30 hover:text-amber-300 hover:bg-amber-500/10'
+              }`}
+              title="Product Owner Admin"
+            >
+              <Crown className="w-4 h-4" />
+              <span className="hidden md:inline">Admin</span>
+            </Link>
+          )}
+
           <nav className="flex items-center gap-0.5 sm:gap-1 bg-[#0e121a] p-1 sm:p-1.5 rounded-xl border border-purple-900/40 font-gaming text-xs pointer-events-auto">
             {navItems.map((item) => {
               const Icon = item.icon;

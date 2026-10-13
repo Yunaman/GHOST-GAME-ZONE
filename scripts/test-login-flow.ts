@@ -6,15 +6,18 @@ async function testLoginCredentials() {
   // Test 1: Valid Credentials
   const validUser = 'ghostvon';
   const validPass = 'von$111';
-  const isOk = await verifyCredentials(validUser, validPass);
+  const res1 = await verifyCredentials(validUser, validPass);
+  const isOk = res1.success;
   console.log(`[TEST 1] Username '${validUser}' + Password '${validPass}':`, isOk ? '✓ SUCCESS' : 'FAILED');
 
   // Test 2: Invalid Password
-  const isBadPass = await verifyCredentials(validUser, 'wrongpass');
+  const res2 = await verifyCredentials(validUser, 'wrongpass');
+  const isBadPass = res2.success;
   console.log(`[TEST 2] Username '${validUser}' + Bad Password:`, !isBadPass ? '✓ REJECTED (Expected)' : 'FAILED');
 
   // Test 3: Invalid Username
-  const isBadUser = await verifyCredentials('wronguser', validPass);
+  const res3 = await verifyCredentials('nonexistent_user', validPass);
+  const isBadUser = res3.success;
   console.log(`[TEST 3] Bad Username + Password '${validPass}':`, !isBadUser ? '✓ REJECTED (Expected)' : 'FAILED');
 
   if (isOk && !isBadPass && !isBadUser) {

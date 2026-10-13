@@ -1,19 +1,18 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE_NAME, verifyCredentials, generateSessionToken } from '@/lib/auth';
+import { AUTH_COOKIE_NAME, verifyCredentials } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export async function loginAction(username: string, password: string) {
   try {
-    const isValid = await verifyCredentials(username, password);
-    if (!isValid) {
-      return { success: false, error: 'Invalid username or password' };
+    const result = await verifyCredentials(username, password);
+    if (!result.success || !result.token) {
+      return { success: false, error: result.error || 'Invalid username or password' };
     }
 
-    const token = generateSessionToken();
     const cookieStore = await cookies();
-    cookieStore.set(AUTH_COOKIE_NAME, token, {
+    cookieStore.set(AUTH_COOKIE_NAME, result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -21,7 +20,7 @@ export async function loginAction(username: string, password: string) {
       path: '/',
     });
 
-    return { success: true };
+    return { success: true, user: result.user };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Login failed' };
   }
