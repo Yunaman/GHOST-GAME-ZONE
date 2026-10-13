@@ -32,15 +32,15 @@
       "status": "AVAILABLE",
       "display_order": 1,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.968Z"
+      "created_at": "2026-10-13T12:42:10.341Z"
     },
     {
       "id": "c-2",
       "name": "TV 2",
-      "status": "PLAYING",
+      "status": "AVAILABLE",
       "display_order": 2,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.968Z"
+      "created_at": "2026-10-13T12:42:10.342Z"
     },
     {
       "id": "c-3",
@@ -48,7 +48,7 @@
       "status": "AVAILABLE",
       "display_order": 3,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.968Z"
+      "created_at": "2026-10-13T12:42:10.342Z"
     },
     {
       "id": "c-4",
@@ -56,7 +56,7 @@
       "status": "AVAILABLE",
       "display_order": 4,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.981Z"
+      "created_at": "2026-10-13T12:42:10.359Z"
     },
     {
       "id": "c-5",
@@ -64,7 +64,7 @@
       "status": "AVAILABLE",
       "display_order": 5,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.981Z"
+      "created_at": "2026-10-13T12:42:10.360Z"
     },
     {
       "id": "c-6",
@@ -72,7 +72,7 @@
       "status": "AVAILABLE",
       "display_order": 6,
       "is_active": true,
-      "created_at": "2026-10-13T12:02:52.982Z"
+      "created_at": "2026-10-13T12:42:10.361Z"
     }
   ],
   "settings": {
@@ -80,116 +80,214 @@
     "fifa_normal_price": 15,
     "fifa_extra_time_price": 5,
     "currency": "ETB",
-    "updated_at": "2026-10-13T12:02:52.985Z",
-    "history_cleared_at": "2026-10-13T12:02:52.985Z",
+    "updated_at": "2026-10-13T12:42:10.365Z",
+    "history_cleared_at": "2026-10-13T12:42:10.365Z",
     "reports_reset_at": "2026-10-08T12:08:58.923Z"
   },
   "sessions": [
     {
-      "id": "4fd67256-733b-4559-b332-c8491d47ed3f",
+      "id": "f21bfaf8-54b3-4d1a-b651-b19d98932cc9",
       "console_id": "c-1",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "FINISHED",
-      "started_at": "2026-10-13T12:02:52.969Z",
+      "started_at": "2026-10-13T12:42:10.344Z",
       "total_amount": 50,
       "payment_status": "PAID",
       "created_by": "Tester",
-      "created_at": "2026-10-13T12:02:52.969Z",
-      "finished_at": "2026-10-13T12:02:52.980Z"
+      "created_at": "2026-10-13T12:42:10.344Z",
+      "finished_at": "2026-10-13T12:42:10.359Z"
     },
     {
-      "id": "a372e932-8d84-4311-acb0-3399cd8b38fa",
+      "id": "330a9f8a-6ccc-4abe-9f7d-6277ce419c82",
       "console_id": "c-2",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
-      "status": "ACTIVE",
-      "started_at": "2026-10-13T12:02:52.984Z",
+      "status": "FINISHED",
+      "started_at": "2026-10-13T12:42:10.363Z",
       "total_amount": 15,
-      "payment_status": "UNPAID",
+      "payment_status": "PAID",
       "created_by": "ActivePlayer",
-      "created_at": "2026-10-13T12:02:52.984Z"
+      "created_at": "2026-10-13T12:42:10.363Z",
+      "finished_at": "2026-10-13T12:42:44.754Z"
     },
     {
-      "id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "id": "28f8fb45-f49f-4911-918d-c11461d35a83",
       "console_id": "c-1",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "FINISHED",
-      "started_at": "2026-10-13T12:24:56.888Z",
+      "started_at": "2026-10-13T12:42:44.758Z",
       "total_amount": 15,
       "payment_status": "PAID",
-      "created_by": "Tester",
-      "created_at": "2026-10-13T12:24:56.888Z",
-      "finished_at": "2026-10-13T12:24:56.907Z"
+      "created_by": "Staff",
+      "created_at": "2026-10-13T12:42:44.758Z",
+      "finished_at": "2026-10-13T12:42:44.770Z"
+    },
+    {
+      "id": "b4a2563e-b2e9-4c9c-986c-a6eaa5c2b0ca",
+      "console_id": "c-2",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-13T12:42:44.760Z",
+      "total_amount": 30,
+      "payment_status": "PAID",
+      "created_by": "Staff",
+      "created_at": "2026-10-13T12:42:44.760Z",
+      "finished_at": "2026-10-13T12:42:44.772Z"
+    },
+    {
+      "id": "2a971d46-00a9-4393-a447-e7c9935da146",
+      "console_id": "c-3",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-13T12:42:44.764Z",
+      "total_amount": 45,
+      "payment_status": "PAID",
+      "created_by": "Staff",
+      "created_at": "2026-10-13T12:42:44.764Z",
+      "finished_at": "2026-10-13T12:42:44.774Z"
     }
   ],
   "matches": [
     {
-      "id": "be2c72e8-328a-4be9-8955-cc22cf74d9fc",
-      "session_id": "4fd67256-733b-4559-b332-c8491d47ed3f",
+      "id": "dc7e35f7-7a37-4abc-8481-60987d4125c7",
+      "session_id": "f21bfaf8-54b3-4d1a-b651-b19d98932cc9",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T12:02:52.970Z"
+      "created_at": "2026-10-13T12:42:10.346Z"
     },
     {
-      "id": "c0388521-217f-4484-90c6-99ee6fd61e98",
-      "session_id": "4fd67256-733b-4559-b332-c8491d47ed3f",
+      "id": "2a6cb912-1a71-475e-980a-55f026cb8ff5",
+      "session_id": "f21bfaf8-54b3-4d1a-b651-b19d98932cc9",
       "match_number": 2,
       "base_price": 15,
       "extra_time": true,
       "extra_time_price": 5,
       "total_price": 20,
-      "created_at": "2026-10-13T12:02:52.974Z"
+      "created_at": "2026-10-13T12:42:10.349Z"
     },
     {
-      "id": "4f874297-2b51-4bdc-aedd-efdc23c36e04",
-      "session_id": "4fd67256-733b-4559-b332-c8491d47ed3f",
+      "id": "38f81eef-3751-4468-8067-14a447c81112",
+      "session_id": "f21bfaf8-54b3-4d1a-b651-b19d98932cc9",
       "match_number": 3,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T12:02:52.976Z"
+      "created_at": "2026-10-13T12:42:10.352Z"
     },
     {
-      "id": "563386dc-4f57-45eb-b429-f4980fc31e48",
-      "session_id": "a372e932-8d84-4311-acb0-3399cd8b38fa",
+      "id": "254e2070-3b10-4a30-9d30-aac9d583a71f",
+      "session_id": "330a9f8a-6ccc-4abe-9f7d-6277ce419c82",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T12:02:52.984Z"
+      "created_at": "2026-10-13T12:42:10.363Z"
     },
     {
-      "id": "ce97f7bb-f091-4ea8-9f85-a036c517278f",
-      "session_id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "id": "eeb8c251-6e2a-4638-87dd-018d87317eee",
+      "session_id": "28f8fb45-f49f-4911-918d-c11461d35a83",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T12:24:56.895Z"
+      "created_at": "2026-10-13T12:42:44.759Z"
+    },
+    {
+      "id": "fedf7963-196b-4c46-82d4-b0b3576f8d1c",
+      "session_id": "b4a2563e-b2e9-4c9c-986c-a6eaa5c2b0ca",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:42:44.762Z"
+    },
+    {
+      "id": "8c37c460-3434-4347-bfdc-fb375cf03ab1",
+      "session_id": "b4a2563e-b2e9-4c9c-986c-a6eaa5c2b0ca",
+      "match_number": 2,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:42:44.763Z"
+    },
+    {
+      "id": "1d4c89b0-8622-4500-8049-40447923e51b",
+      "session_id": "2a971d46-00a9-4393-a447-e7c9935da146",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:42:44.765Z"
+    },
+    {
+      "id": "36983396-b61d-465d-99dd-540f4f8bbf55",
+      "session_id": "2a971d46-00a9-4393-a447-e7c9935da146",
+      "match_number": 2,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:42:44.767Z"
+    },
+    {
+      "id": "1c92361e-653a-4149-b4cf-2d427486047d",
+      "session_id": "2a971d46-00a9-4393-a447-e7c9935da146",
+      "match_number": 3,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "created_at": "2026-10-13T12:42:44.768Z"
     }
   ],
   "payments": [
     {
-      "id": "1f16d23f-f7a3-49ea-8b70-91dabc067d78",
-      "session_id": "4fd67256-733b-4559-b332-c8491d47ed3f",
+      "id": "9cd22a5e-135d-412b-a8fc-66299d87ce73",
+      "session_id": "f21bfaf8-54b3-4d1a-b651-b19d98932cc9",
       "method": "CASH",
       "amount": 50,
-      "created_at": "2026-10-13T12:02:52.980Z"
+      "created_at": "2026-10-13T12:42:10.359Z"
     },
     {
-      "id": "db54b583-fdac-412e-b4f5-6116a2ca4eb2",
-      "session_id": "f89ba7b4-77bc-486a-a92f-5955c6f6ee44",
+      "id": "7f94fea5-f2ef-49d3-89fe-6eb11752aeb2",
+      "session_id": "330a9f8a-6ccc-4abe-9f7d-6277ce419c82",
       "method": "CASH",
       "amount": 15,
-      "created_at": "2026-10-13T12:24:56.907Z"
+      "created_at": "2026-10-13T12:42:44.754Z"
+    },
+    {
+      "id": "c0052441-eba0-4a66-94b6-193b94436c78",
+      "session_id": "28f8fb45-f49f-4911-918d-c11461d35a83",
+      "method": "CASH",
+      "amount": 15,
+      "created_at": "2026-10-13T12:42:44.770Z"
+    },
+    {
+      "id": "ae5a736d-ef98-4d4a-994e-a9fc9b20c700",
+      "session_id": "b4a2563e-b2e9-4c9c-986c-a6eaa5c2b0ca",
+      "method": "CASH",
+      "amount": 30,
+      "created_at": "2026-10-13T12:42:44.772Z"
+    },
+    {
+      "id": "95d060a8-9f87-487e-a616-580e654c38a7",
+      "session_id": "2a971d46-00a9-4393-a447-e7c9935da146",
+      "method": "CASH",
+      "amount": 45,
+      "created_at": "2026-10-13T12:42:44.774Z"
     }
   ],
   "adjustments": []

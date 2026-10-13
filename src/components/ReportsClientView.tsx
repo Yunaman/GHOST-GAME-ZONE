@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { AnalyticsSummary, Settings } from '@/types';
-import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency } from '@/lib/utils';
 import { BarChart3, TrendingUp, Calendar, Tv, CreditCard } from 'lucide-react';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
@@ -21,27 +20,13 @@ export function ReportsClientView({ initialSummary, initialSettings }: ReportsCl
 
   const currency = settings.currency || 'ETB';
 
-  const loadData = async () => {
-    try {
-      const localSummary = await offlineRepository.getAnalyticsSummary();
-      const localSettings = await offlineRepository.getSettings();
-      if (localSummary) setSummary(localSummary);
-      if (localSettings) setSettings(localSettings);
-    } catch (err) {
-      // Fallback
-    }
-  };
-
   useEffect(() => {
     setSummary(initialSummary);
     setSettings(initialSettings);
   }, [initialSummary, initialSettings]);
 
   useEffect(() => {
-    loadData();
-
     const handleDataUpdate = () => {
-      loadData();
       router.refresh();
     };
 
