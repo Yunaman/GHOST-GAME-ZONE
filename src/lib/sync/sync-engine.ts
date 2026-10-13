@@ -177,21 +177,22 @@ export async function processSyncQueue(): Promise<void> {
   }
 }
 
-// Download cloud state to Local IndexedDB when online
+// Download cloud state to Local IndexedDB
 export async function downloadCloudToIndexedDB(): Promise<void> {
   if (typeof window === 'undefined' || !navigator.onLine || !supabase) return;
 
   try {
-    const { data: settings } = await supabase.from('settings').select('*').eq('id', 'default').single();
-    if (settings) {
+    const { data: settings } = await supabase.from('settings').select('*').limit(1);
+    if (settings && settings.length > 0) {
+      const s = settings[0];
       await idbPut('settings', {
-        id: 'default',
-        fifa_normal_price: Number(settings.fifa_normal_price),
-        fifa_extra_time_price: Number(settings.fifa_extra_time_price),
-        currency: settings.currency,
-        history_cleared_at: settings.history_cleared_at || undefined,
-        reports_reset_at: settings.reports_reset_at || undefined,
-        updated_at: settings.updated_at,
+        id: s.id || 'default',
+        fifa_normal_price: Number(s.fifa_normal_price),
+        fifa_extra_time_price: Number(s.fifa_extra_time_price),
+        currency: s.currency,
+        history_cleared_at: s.history_cleared_at || undefined,
+        reports_reset_at: s.reports_reset_at || undefined,
+        updated_at: s.updated_at,
       });
     }
 

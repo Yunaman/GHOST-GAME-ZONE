@@ -1,11 +1,11 @@
 export const AUTH_COOKIE_NAME = 'ghost_session';
 
 export function getAdminUser(): string {
-  return process.env.GHOST_ADMIN_USER || 'ghostvon';
+  return process.env.GHOST_ADMIN_USER || 'yunaonice';
 }
 
 export function getAdminPassword(): string {
-  return process.env.GHOST_ADMIN_PASSWORD || 'von$111';
+  return process.env.GHOST_ADMIN_PASSWORD || 'yuna$1';
 }
 
 function simpleHash(str: string): string {
@@ -18,18 +18,30 @@ function simpleHash(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
-export function generateSessionTokenForUser(username: string, tenantId: string, role: string): string {
-  const pass = getAdminPassword();
+export function generateSessionTokenForUser(username: string, tenantId: string, role: string, passHash?: string): string {
+  const adminPass = getAdminPassword();
   const timestamp = '1775650000000'; // Epoch seed
-  const signature = simpleHash(`${username}:${tenantId}:${pass}:${timestamp}`);
-  return `ghost_v3_${username}_${tenantId}_${role}_${signature}`;
+  const signature = simpleHash(`${username}:${tenantId}:${passHash || adminPass}:${timestamp}`);
+
+  const payload = JSON.stringify({
+    u: username,
+    t: tenantId,
+    r: role,
+    s: signature,
+  });
+
+  const base64 = typeof btoa !== 'undefined'
+    ? btoa(payload)
+    : Buffer.from(payload).toString('base64');
+
+  return `ghost_v4_${base64}`;
 }
 
 export function parseSessionToken(token: string): { username: string; tenantId: string; role: string; isValid: boolean } | null {
   if (!token) return null;
 
-  // Support legacy v2 token for backwards compatibility during session transition
-  if (token.startsWith('ghost_v2_')) {
+  // Support legacy tokens
+  if (token.startsWith('ghost_v2_') || token.startsWith('ghost_v3_')) {
     const admin = getAdminUser();
     return {
       username: admin,
@@ -39,29 +51,26 @@ export function parseSessionToken(token: string): { username: string; tenantId: 
     };
   }
 
-  if (!token.startsWith('ghost_v3_')) return null;
+  if (!token.startsWith('ghost_v4_')) return null;
 
-  const parts = token.split('_');
-  // Format: ghost, v3, username, tenantId, role, signature
-  if (parts.length < 6) return null;
+  try {
+    const rawBase64 = token.replace('ghost_v4_', '');
+    const jsonStr = typeof atob !== 'undefined'
+      ? atob(rawBase64)
+      : Buffer.from(rawBase64, 'base64').toString('utf-8');
 
-  const username = parts[2];
-  const tenantId = parts[3];
-  const role = parts[4];
-  const signature = parts[5];
+    const data = JSON.parse(jsonStr);
+    if (!data.u || !data.t || !data.r) return null;
 
-  const pass = getAdminPassword();
-  const timestamp = '1775650000000';
-  const expectedSignature = simpleHash(`${username}:${tenantId}:${pass}:${timestamp}`);
-
-  if (signature !== expectedSignature) return null;
-
-  return {
-    username,
-    tenantId,
-    role,
-    isValid: true,
-  };
+    return {
+      username: data.u,
+      tenantId: data.t,
+      role: data.r,
+      isValid: true,
+    };
+  } catch (err) {
+    return null;
+  }
 }
 
 export function validateSessionToken(token: string): boolean {

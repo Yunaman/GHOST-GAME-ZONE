@@ -41,9 +41,10 @@ export interface Repository {
   // Tenant / Multi-Customer Owner Admin Methods
   getTenants(): Promise<Tenant[]>;
   getAdminStats(): Promise<AdminStats>;
-  registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount?: number): Promise<Tenant>;
+  registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, initialPassword?: string, licenseAmount?: number): Promise<Tenant>;
   updateTenantStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): Promise<Tenant>;
   updateTenantGameZoneName(id: string, gameZoneName: string): Promise<Tenant>;
+  updateTenantPassword(id: string, newPassword?: string): Promise<{ success: boolean }>;
 }
 
 async function resolveTenantId(providedTenantId?: string): Promise<string> {
@@ -588,7 +589,7 @@ const fsRepository: Repository = {
     };
   },
 
-  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, initialPassword = '1234', licenseAmount = 5000): Promise<Tenant> {
     const db = loadDb();
     if (!db.tenants) db.tenants = [];
 
@@ -603,6 +604,7 @@ const fsRepository: Repository = {
       game_zone_name: gameZoneName,
       owner_contact_name: ownerContactName,
       username: username.toLowerCase().trim(),
+      password: initialPassword,
       license_amount: licenseAmount,
       license_status: 'PAID',
       status: 'ACTIVE',
@@ -638,6 +640,15 @@ const fsRepository: Repository = {
     tenant.game_zone_name = gameZoneName;
     saveDb(db);
     return tenant;
+  },
+
+  async updateTenantPassword(id: string, newPassword?: string): Promise<{ success: boolean }> {
+    const db = loadDb();
+    const tenant = (db.tenants || []).find((t) => t.id === id);
+    if (!tenant) throw new Error('Tenant not found');
+    tenant.password = newPassword;
+    saveDb(db);
+    return { success: true };
   },
 };
 
@@ -1306,7 +1317,7 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, initialPassword = '1234', licenseAmount = 5000): Promise<Tenant> {
     const client = getSupabaseClient();
     const lowerUsername = username.toLowerCase().trim();
 
@@ -1329,6 +1340,7 @@ const supabaseRepository: Repository = {
         game_zone_name: gameZoneName,
         owner_contact_name: ownerContactName,
         username: lowerUsername,
+        password: initialPassword,
         license_amount: licenseAmount,
         license_status: 'PAID',
         status: 'ACTIVE',
@@ -1374,6 +1386,17 @@ const supabaseRepository: Repository = {
 
     if (error || !data) throw new Error(error?.message || 'Failed to update Game Zone name');
     return data as Tenant;
+  },
+
+  async updateTenantPassword(id: string, newPassword?: string): Promise<{ success: boolean }> {
+    const client = getSupabaseClient();
+    const { error } = await client
+      .from('tenants')
+      .update({ password: newPassword })
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
   },
 };
 

@@ -15,10 +15,10 @@ import {
   Edit3,
   Power,
   ArrowLeft,
-  Sparkles,
   Crown,
   Check,
   X,
+  Key,
 } from 'lucide-react';
 import { Tenant, AdminStats } from '@/types';
 import {
@@ -41,6 +41,7 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
   const [gameZoneName, setGameZoneName] = useState('');
   const [ownerContact, setOwnerContact] = useState('');
   const [username, setUsername] = useState('');
+  const [initialPassword, setInitialPassword] = useState('1234');
   const [licenseFee, setLicenseFee] = useState('5000');
   const [regError, setRegError] = useState('');
 
@@ -70,8 +71,8 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
     e.preventDefault();
     setRegError('');
 
-    if (!gameZoneName.trim() || !username.trim()) {
-      setRegError('Game Zone Name and Username are required');
+    if (!gameZoneName.trim() || !username.trim() || !initialPassword.trim()) {
+      setRegError('Game Zone Name, Username, and Password are required');
       return;
     }
 
@@ -80,6 +81,7 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
         gameZoneName,
         ownerContact,
         username,
+        initialPassword,
         Number(licenseFee) || 5000
       );
 
@@ -94,6 +96,7 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
         setGameZoneName('');
         setOwnerContact('');
         setUsername('');
+        setInitialPassword('1234');
         setLicenseFee('5000');
         setShowRegModal(false);
       } else {
@@ -399,7 +402,7 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
       {/* Registration Modal */}
       {showRegModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#1f2833] border border-[#45a29e]/30 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+          <div className="bg-[#1f2833] border border-[#45a29e]/30 w-full max-w-md rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowRegModal(false)}
               className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-lg"
@@ -413,7 +416,7 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
             </div>
 
             <p className="text-xs text-gray-400 mb-6">
-              Create a dedicated customer license for a new game zone. Standard rate is <strong className="text-emerald-400">5,000 ETB</strong>.
+              Create a customer account and password for a new game zone. Standard license is <strong className="text-emerald-400">5,000 ETB</strong>.
             </p>
 
             {regError && (
@@ -462,6 +465,24 @@ export default function AdminDashboardClientView({ initialStats, initialTenants 
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-[#0b0c10] border border-[#45a29e]/30 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#66fcf1]"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono uppercase text-gray-300 mb-1">
+                  Initial Login Password <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative">
+                  <Key className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Initial password given to customer"
+                    value={initialPassword}
+                    onChange={(e) => setInitialPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0b0c10] border border-[#45a29e]/30 text-white font-mono text-sm focus:outline-none focus:border-[#66fcf1]"
+                  />
+                </div>
+                <span className="text-[11px] text-gray-400 mt-1 block">Customer can change this password later in Settings.</span>
               </div>
 
               <div>

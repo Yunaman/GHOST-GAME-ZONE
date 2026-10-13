@@ -19,6 +19,7 @@ export interface Tenant {
   game_zone_name: string;
   owner_contact_name?: string;
   username: string;
+  password?: string;
   license_amount: number;
   license_status: 'PAID' | 'UNPAID';
   status: TenantStatus;

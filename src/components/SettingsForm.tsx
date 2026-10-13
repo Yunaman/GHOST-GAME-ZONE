@@ -8,9 +8,10 @@ import {
   addConsoleAction,
   toggleConsoleActiveAction,
 } from '@/app/actions';
+import { updatePasswordAction } from '@/app/admin-actions';
 import { logoutAction } from '@/app/auth-actions';
 import { offlineRepository } from '@/lib/repository/offline-repository';
-import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette, LogOut } from 'lucide-react';
+import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette, LogOut, Key, Check } from 'lucide-react';
 import { useTheme, AppTheme } from '@/components/ThemeProvider';
 
 interface SettingsFormProps {
@@ -34,15 +35,52 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
     initialConsoles.reduce((acc, c) => ({ ...acc, [c.id]: c.is_active !== false }), {})
   );
 
+  // Password State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingTv, setIsAddingTv] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   async function handleLogout() {
-    if (!confirm('Are you sure you want to log out of Ghost Game Zone?')) return;
+    if (!confirm('Are you sure you want to log out of Ghost Game Center?')) return;
     setIsLoggingOut(true);
     await logoutAction();
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordMsg(null);
+
+    if (!newPassword || newPassword.length < 3) {
+      setPasswordMsg({ type: 'error', text: 'Password must be at least 3 characters long' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'Passwords do not match' });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await updatePasswordAction(newPassword);
+      if (res.success) {
+        setPasswordMsg({ type: 'success', text: res.message || 'Password updated successfully!' });
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordMsg({ type: 'error', text: res.error || 'Failed to update password' });
+      }
+    } catch (err: any) {
+      setPasswordMsg({ type: 'error', text: err?.message || 'Error updating password' });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   }
 
   async function handleAddTv() {
@@ -143,6 +181,64 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Account Security / Change Password */}
+      <div className="ghost-glass-card p-5 space-y-4">
+        <h2 className="font-gaming font-bold text-base text-white uppercase flex items-center gap-2 border-b border-purple-900/40 pb-3">
+          <Key className="w-5 h-5 text-amber-400" />
+          <span>ACCOUNT SECURITY &amp; PASSWORD CHANGE</span>
+        </h2>
+
+        {passwordMsg && (
+          <div className={`p-3 rounded-xl text-xs font-mono ${
+            passwordMsg.type === 'success' ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800' : 'bg-rose-950/80 text-rose-300 border border-rose-800'
+          }`}>
+            {passwordMsg.text}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label className="block font-handwriting text-zinc-300 text-lg mb-1">
+              New Account Password
+            </label>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-black/80 border border-purple-900/50 rounded-xl text-white font-mono text-sm outline-none focus:border-amber-400"
+            />
+          </div>
+
+          <div>
+            <label className="block font-handwriting text-zinc-300 text-lg mb-1">
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-black/80 border border-purple-900/50 rounded-xl text-white font-mono text-sm outline-none focus:border-amber-400"
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handlePasswordChange}
+          disabled={isUpdatingPassword || !newPassword}
+          className="px-5 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-gaming font-bold text-xs rounded-xl border border-amber-500/40 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+        >
+          {isUpdatingPassword ? (
+            <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+          ) : (
+            <Check className="w-4 h-4 text-amber-400" />
+          )}
+          <span>UPDATE ACCOUNT PASSWORD</span>
+        </button>
+      </div>
+
       {/* Visual Identity Theme System */}
       <div className="ghost-glass-card p-5 space-y-4">
         <h2 className="font-gaming font-bold text-base text-white uppercase flex items-center gap-2 border-b border-purple-900/40 pb-3">
@@ -332,7 +428,7 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
           ) : (
             <LogOut className="w-4 h-4 text-rose-400" />
           )}
-          <span>LOG OUT (GHOSTVON)</span>
+          <span>LOG OUT ACCOUNT</span>
         </button>
       </div>
     </form>
