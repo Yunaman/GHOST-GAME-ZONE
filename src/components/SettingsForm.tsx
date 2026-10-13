@@ -8,8 +8,9 @@ import {
   addConsoleAction,
   toggleConsoleActiveAction,
 } from '@/app/actions';
+import { logoutAction } from '@/app/auth-actions';
 import { offlineRepository } from '@/lib/repository/offline-repository';
-import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette } from 'lucide-react';
+import { Save, Loader2, Tv, DollarSign, Plus, ToggleLeft, ToggleRight, Palette, LogOut } from 'lucide-react';
 import { useTheme, AppTheme } from '@/components/ThemeProvider';
 
 interface SettingsFormProps {
@@ -35,7 +36,14 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingTv, setIsAddingTv] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  async function handleLogout() {
+    if (!confirm('Are you sure you want to log out of Ghost Game Zone?')) return;
+    setIsLoggingOut(true);
+    await logoutAction();
+  }
 
   async function handleAddTv() {
     setIsAddingTv(true);
@@ -297,20 +305,36 @@ export function SettingsForm({ settings, consoles: initialConsoles }: SettingsFo
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full sm:w-auto px-8 py-3.5 ghost-btn-primary font-gaming font-bold text-sm rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-      >
-        {isSubmitting ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <>
-            <Save className="w-5 h-5" />
-            <span>SAVE CONFIGURATION 👻</span>
-          </>
-        )}
-      </button>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full sm:w-auto px-8 py-3.5 ghost-btn-primary font-gaming font-bold text-sm rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            <Loader2 className="w-5 h-5 animate-spin text-black" />
+          ) : (
+            <>
+              <Save className="w-5 h-5 text-black" />
+              <span className="text-black font-black">SAVE CONFIGURATION 👻</span>
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full sm:w-auto px-6 py-3.5 bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800 rounded-xl font-gaming font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+        >
+          {isLoggingOut ? (
+            <Loader2 className="w-4 h-4 animate-spin text-rose-300" />
+          ) : (
+            <LogOut className="w-4 h-4 text-rose-400" />
+          )}
+          <span>LOG OUT (GHOSTVON)</span>
+        </button>
+      </div>
     </form>
   );
 }

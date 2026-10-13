@@ -5,7 +5,6 @@ import { Console, Session, Settings } from '@/types';
 import { ConsoleCard } from '@/components/ConsoleCard';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
 import { InstallAppCard } from '@/components/InstallAppCard';
-import { offlineRepository } from '@/lib/repository/offline-repository';
 
 interface ConsoleWithSession {
   console: Console;
@@ -34,54 +33,14 @@ export function DashboardClientView({
   );
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
-  const loadLocalData = async () => {
-    try {
-      const consoles = await offlineRepository.getConsoles();
-      const loadedSettings = await offlineRepository.getSettings();
-      if (loadedSettings) setSettings(loadedSettings);
-
-      const activeConsoles = consoles.filter((c) => c.is_active !== false);
-      const withSessions = await Promise.all(
-        activeConsoles.map(async (c) => {
-          const active_session = await offlineRepository.getActiveSessionByConsoleId(c.id);
-          return {
-            console: c,
-            active_session,
-          };
-        })
-      );
-
-      if (withSessions.length > 0) {
-        setConsolesWithSessions(withSessions);
-      }
-    } catch (err) {
-      console.warn('DashboardClientView local data load warning:', err);
-    }
-  };
-
   useEffect(() => {
     if (initialConsolesWithSessions && initialConsolesWithSessions.length > 0) {
       setConsolesWithSessions(initialConsolesWithSessions);
-    } else {
-      loadLocalData();
     }
     if (initialSettings) {
       setSettings(initialSettings);
     }
   }, [initialConsolesWithSessions, initialSettings]);
-
-  useEffect(() => {
-    loadLocalData();
-
-    const handleDataUpdate = () => {
-      loadLocalData();
-    };
-
-    window.addEventListener('ghost_data_updated', handleDataUpdate);
-    return () => {
-      window.removeEventListener('ghost_data_updated', handleDataUpdate);
-    };
-  }, []);
 
   const activeTvCount = consolesWithSessions.filter((cs) => cs.console.is_active).length;
 
@@ -127,7 +86,6 @@ export function DashboardClientView({
             key={cs.console.id}
             consoleState={cs}
             settings={settings}
-            onSessionFinished={loadLocalData}
           />
         ))}
       </div>
