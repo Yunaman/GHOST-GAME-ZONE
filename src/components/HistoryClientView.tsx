@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Session, Settings } from '@/types';
-import { offlineRepository } from '@/lib/repository/offline-repository';
 import { formatCurrency } from '@/lib/utils';
 import { History, Tv, Calendar, ChevronRight, Zap } from 'lucide-react';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
@@ -20,31 +19,13 @@ export function HistoryClientView({ initialSessions, initialSettings }: HistoryC
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [settings, setSettings] = useState<Settings>(initialSettings);
 
-  const loadData = async () => {
-    try {
-      const localSessions = await offlineRepository.getSessionsHistory(100);
-      const localSettings = await offlineRepository.getSettings();
-      if (localSessions && localSessions.length > 0) {
-        setSessions(localSessions);
-      }
-      if (localSettings) {
-        setSettings(localSettings);
-      }
-    } catch (err) {
-      // Fallback
-    }
-  };
-
   useEffect(() => {
     setSessions(initialSessions);
     setSettings(initialSettings);
   }, [initialSessions, initialSettings]);
 
   useEffect(() => {
-    loadData();
-
     const handleDataUpdate = () => {
-      loadData();
       router.refresh();
     };
 

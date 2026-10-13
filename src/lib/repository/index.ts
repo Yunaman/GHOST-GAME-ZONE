@@ -650,10 +650,11 @@ const supabaseRepository: Repository = {
       .select('id')
       .eq('console_id', consoleId)
       .eq('status', 'ACTIVE')
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (error || !data) return null;
-    return this.getSessionById(data.id);
+    if (error || !data || data.length === 0) return null;
+    return this.getSessionById(data[0].id);
   },
 
   async getSessionById(sessionId: string): Promise<Session | null> {
@@ -689,8 +690,17 @@ const supabaseRepository: Repository = {
   async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
     const client = getSupabaseClient();
 
-    const { data: existing } = await client.from('sessions').select('id').eq('console_id', consoleId).eq('status', 'ACTIVE').single();
-    if (existing) throw new Error('TV already has an active session');
+    const { data: existing } = await client
+      .from('sessions')
+      .select('id')
+      .eq('console_id', consoleId)
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      throw new Error('TV already has an active session');
+    }
 
     const insertPayload: any = {
       console_id: consoleId,
@@ -911,22 +921,27 @@ const supabaseRepository: Repository = {
   async getSessionsHistory(limit = 100): Promise<Session[]> {
     const client = getSupabaseClient();
     const settings = await this.getSettings();
-    let query = client
+    const query = client
       .from('sessions')
-      .select('id')
+      .select('id, created_at, finished_at')
       .eq('status', 'FINISHED')
       .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (settings.history_cleared_at) {
-      query = query.gt('created_at', settings.history_cleared_at);
-    }
+      .limit(limit * 2);
 
     const { data } = await query;
     if (!data) return [];
 
+    const clearedAtTime = settings.history_cleared_at
+      ? new Date(settings.history_cleared_at).getTime()
+      : 0;
+
+    const filtered = data.filter((item) => {
+      const sessTime = new Date(item.finished_at || item.created_at).getTime();
+      return sessTime > clearedAtTime;
+    }).slice(0, limit);
+
     const result: Session[] = [];
-    for (const item of data) {
+    for (const item of filtered) {
       const sess = await this.getSessionById(item.id);
       if (sess) result.push(sess);
     }
@@ -998,20 +1013,23 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const settings = await this.getSettings();
 
-    let query = client
+    const { data } = await client
       .from('sessions')
-      .select('id')
+      .select('id, created_at, finished_at')
       .eq('status', 'FINISHED');
 
-    if (settings.reports_reset_at) {
-      query = query.gt('created_at', settings.reports_reset_at);
-    }
-
-    const { data } = await query;
+    const resetAtTime = settings.reports_reset_at
+      ? new Date(settings.reports_reset_at).getTime()
+      : 0;
 
     const finishedSessions: Session[] = [];
     if (data) {
-      for (const item of data) {
+      const filtered = data.filter((item) => {
+        const sessTime = new Date(item.finished_at || item.created_at).getTime();
+        return sessTime > resetAtTime;
+      });
+
+      for (const item of filtered) {
         const sess = await this.getSessionById(item.id);
         if (sess) finishedSessions.push(sess);
       }
