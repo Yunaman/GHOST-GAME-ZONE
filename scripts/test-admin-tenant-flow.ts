@@ -7,15 +7,17 @@ async function testAdminTenantFlow() {
   const initialStats = await repository.getAdminStats();
   console.log('[TEST 1] Initial Admin Stats:', initialStats);
 
-  // 2. Register a new customer
+  // 2. Register a new customer with initial password
   const testZoneName = `Test Zone ${Date.now()}`;
   const testUsername = `cust_${Date.now()}`;
-  console.log(`[TEST 2] Registering Customer: "${testZoneName}" (@${testUsername})...`);
+  const testPassword = `pass_${Date.now()}`;
+  console.log(`[TEST 2] Registering Customer: "${testZoneName}" (@${testUsername}) with Password "${testPassword}"...`);
 
   const newTenant = await repository.registerCustomerTenant(
     testZoneName,
     'Abebe Kebede',
     testUsername,
+    testPassword,
     5000
   );
 

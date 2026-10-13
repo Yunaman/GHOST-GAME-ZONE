@@ -10,25 +10,24 @@ CREATE TABLE IF NOT EXISTS tenants (
   game_zone_name TEXT NOT NULL,
   owner_contact_name TEXT,
   username TEXT NOT NULL UNIQUE,
+  password TEXT,
   license_amount NUMERIC NOT NULL DEFAULT 5000,
   license_status TEXT NOT NULL DEFAULT 'PAID',
   status TEXT NOT NULL DEFAULT 'ACTIVE',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Ensure password column exists if table was created previously
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS password TEXT;
+
 -- Index for fast username lookup during customer login
 CREATE INDEX IF NOT EXISTS idx_tenants_username ON tenants(username);
 CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status);
 
--- 2. INSERT DEFAULT TENANT FOR EXISTING DATA
-INSERT INTO tenants (id, game_zone_name, owner_contact_name, username, license_amount, license_status, status)
-VALUES ('t-default', 'Main Game Zone', 'Ghostvon Owner', 'ghostvon', 5000, 'PAID', 'ACTIVE')
+-- 2. INSERT DEFAULT TENANTS FOR EXISTING DATA AND ADMIN
+INSERT INTO tenants (id, game_zone_name, owner_contact_name, username, password, license_amount, license_status, status)
+VALUES ('t-default', 'Main Game Zone', 'Yunaonice Owner', 'yunaonice', 'yuna$1', 5000, 'PAID', 'ACTIVE')
 ON CONFLICT (id) DO NOTHING;
-
--- Also ensure ghostvon username exists in tenants
-INSERT INTO tenants (id, game_zone_name, owner_contact_name, username, license_amount, license_status, status)
-VALUES ('t-ghostvon', 'Ghostvon Main Center', 'Ghostvon Owner', 'ghostvon_admin', 5000, 'PAID', 'ACTIVE')
-ON CONFLICT (username) DO NOTHING;
 
 -- 3. ADD TENANT_ID TO ALL CORE OPERATIONAL TABLES
 ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id TEXT REFERENCES tenants(id) DEFAULT 't-default';

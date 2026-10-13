@@ -23,25 +23,29 @@ export function middleware(request: NextRequest) {
   const parsedToken = sessionCookie?.value ? parseSessionToken(sessionCookie.value) : null;
   const isAuthenticated = parsedToken ? parsedToken.isValid : false;
 
-  // If on login page and already authenticated -> redirect to floor '/'
-  if (pathname === '/login') {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/', request.url));
+  // If visiting /admin without being logged in as PRODUCT_OWNER -> redirect to login with returnUrl
+  if (pathname.startsWith('/admin')) {
+    if (!isAuthenticated || (parsedToken?.role !== 'PRODUCT_OWNER' && parsedToken?.username.toLowerCase() !== 'yunaonice')) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', '/admin');
+      return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
   }
 
-  // Protect all application routes ('/', '/admin', '/history', '/reports', '/settings')
+  // If on login page and already authenticated -> redirect to floor '/' or returnUrl
+  if (pathname === '/login') {
+    if (isAuthenticated) {
+      const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/';
+      return NextResponse.redirect(new URL(redirectUrl, request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Protect all application routes ('/', '/history', '/reports', '/settings')
   if (!isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Restrict /admin route exclusively to PRODUCT_OWNER role (username 'ghostvon')
-  if (pathname.startsWith('/admin')) {
-    if (parsedToken?.role !== 'PRODUCT_OWNER' && parsedToken?.username.toLowerCase() !== 'ghostvon') {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
   }
 
   return NextResponse.next();

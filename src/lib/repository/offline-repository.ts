@@ -582,8 +582,9 @@ export const offlineRepository: Repository = {
       {
         id: 't-default',
         game_zone_name: 'Main Game Zone',
-        owner_contact_name: 'Ghostvon Owner',
-        username: 'ghostvon',
+        owner_contact_name: 'Yunaonice Owner',
+        username: 'yunaonice',
+        password: 'yuna$1',
         license_amount: 5000,
         license_status: 'PAID',
         status: 'ACTIVE',
@@ -602,12 +603,13 @@ export const offlineRepository: Repository = {
     };
   },
 
-  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, licenseAmount = 5000): Promise<Tenant> {
+  async registerCustomerTenant(gameZoneName: string, ownerContactName: string, username: string, initialPassword = '1234', licenseAmount = 5000): Promise<Tenant> {
     const tenant: Tenant = {
       id: `t-${cryptoRandomUUID().slice(0, 8)}`,
       game_zone_name: gameZoneName,
       owner_contact_name: ownerContactName,
       username: username.toLowerCase().trim(),
+      password: initialPassword,
       license_amount: licenseAmount,
       license_status: 'PAID',
       status: 'ACTIVE',
@@ -628,5 +630,12 @@ export const offlineRepository: Repository = {
     const tenant = tenants[0];
     tenant.game_zone_name = gameZoneName;
     return tenant;
+  },
+
+  async updateTenantPassword(id: string, newPassword?: string): Promise<{ success: boolean }> {
+    const tenants = await this.getTenants();
+    const tenant = tenants[0];
+    if (tenant) tenant.password = newPassword;
+    return { success: true };
   },
 };

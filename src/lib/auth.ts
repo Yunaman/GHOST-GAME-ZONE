@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { User } from '@/types';
+import { User, Tenant } from '@/types';
 import { repository } from '@/lib/repository';
 import {
   AUTH_COOKIE_NAME,
@@ -27,13 +27,13 @@ export async function getAuthUser(): Promise<(User & { game_zone_name?: string }
     const parsed = parseSessionToken(sessionCookie.value);
     if (!parsed || !parsed.isValid) return null;
 
-    const adminUser = getAdminUser();
-    if (parsed.username.toLowerCase() === adminUser.toLowerCase()) {
+    const adminUser = getAdminUser().toLowerCase();
+    if (parsed.username.toLowerCase() === adminUser) {
       return {
         id: 'u-admin',
         tenant_id: 't-default',
-        username: adminUser,
-        display_name: `${adminUser} (Product Owner)`,
+        username: getAdminUser(),
+        display_name: `${getAdminUser()} (Product Owner)`,
         role: 'PRODUCT_OWNER',
         game_zone_name: 'Ghost Game Center',
         created_at: new Date().toISOString(),
@@ -72,18 +72,18 @@ export async function verifyCredentials(
   const adminUser = getAdminUser().toLowerCase();
   const adminPass = getAdminPassword();
 
-  // 1. Check Product Owner Credentials
+  // Check Product Owner Credentials
   if (inputUser === adminUser) {
     if (p === adminPass) {
-      const token = generateSessionTokenForUser(adminUser, 't-default', 'PRODUCT_OWNER');
+      const token = generateSessionTokenForUser(adminUser, 't-default', 'PRODUCT_OWNER', adminPass);
       return {
         success: true,
         token,
         user: {
           id: 'u-admin',
           tenant_id: 't-default',
-          username: adminUser,
-          display_name: `${adminUser} (Product Owner)`,
+          username: getAdminUser(),
+          display_name: `${getAdminUser()} (Product Owner)`,
           role: 'PRODUCT_OWNER',
           game_zone_name: 'Ghost Game Center',
           created_at: new Date().toISOString(),
@@ -93,7 +93,7 @@ export async function verifyCredentials(
     return { success: false, error: 'Invalid password for admin' };
   }
 
-  // 2. Check Customer Tenant Accounts
+  // Check Customer Tenant Accounts
   const tenants = await repository.getTenants();
   const tenant = tenants.find((t) => t.username.toLowerCase() === inputUser);
 
@@ -105,9 +105,10 @@ export async function verifyCredentials(
     return { success: false, error: 'Account suspended by Product Owner' };
   }
 
-  // Allow standard default system password or admin password for customer accounts
-  if (p === adminPass || p === 'ghostvon' || p === '1234') {
-    const token = generateSessionTokenForUser(tenant.username, tenant.id, 'OWNER');
+  // Customer Password Validation
+  const validTenantPass = tenant.password || '1234';
+  if (p === validTenantPass || p === adminPass) {
+    const token = generateSessionTokenForUser(tenant.username, tenant.id, 'OWNER', validTenantPass);
     return {
       success: true,
       token,
@@ -129,12 +130,11 @@ export async function verifyCredentials(
 export async function getCurrentUser(): Promise<User & { game_zone_name?: string }> {
   const user = await getAuthUser();
   if (user) return user;
-  const adminUser = getAdminUser();
   return {
     id: 'u-admin',
     tenant_id: 't-default',
-    username: adminUser,
-    display_name: `${adminUser} (Product Owner)`,
+    username: getAdminUser(),
+    display_name: `${getAdminUser()} (Product Owner)`,
     role: 'PRODUCT_OWNER',
     game_zone_name: 'Ghost Game Center',
     created_at: new Date().toISOString(),

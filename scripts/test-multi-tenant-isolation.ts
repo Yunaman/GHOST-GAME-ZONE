@@ -3,13 +3,13 @@ import { repository } from '../src/lib/repository';
 async function testMultiTenantIsolation() {
   console.log('--- TESTING MULTI-TENANT CUSTOMER DATA ISOLATION ---');
 
-  // 1. Register two distinct customer tenants
+  // 1. Register two distinct customer tenants with custom passwords
   const tenant1Name = `Zone Alpha ${Date.now()}`;
-  const tenant1 = await repository.registerCustomerTenant(tenant1Name, 'Contact Alpha', `user_a_${Date.now()}`, 5000);
+  const tenant1 = await repository.registerCustomerTenant(tenant1Name, 'Contact Alpha', `user_a_${Date.now()}`, 'alpha123', 5000);
   console.log(`[TEST 1 SUCCESS] Tenant 1 Created: ${tenant1.game_zone_name} (${tenant1.id})`);
 
   const tenant2Name = `Zone Beta ${Date.now()}`;
-  const tenant2 = await repository.registerCustomerTenant(tenant2Name, 'Contact Beta', `user_b_${Date.now()}`, 5000);
+  const tenant2 = await repository.registerCustomerTenant(tenant2Name, 'Contact Beta', `user_b_${Date.now()}`, 'beta123', 5000);
   console.log(`[TEST 2 SUCCESS] Tenant 2 Created: ${tenant2.game_zone_name} (${tenant2.id})`);
 
   // 2. Verify consoles were created for both tenants
