@@ -5,6 +5,7 @@ import { Console, Session, Settings } from '@/types';
 import { ConsoleCard } from '@/components/ConsoleCard';
 import { GhostPaymentCard } from '@/components/GhostPaymentCard';
 import { InstallAppCard } from '@/components/InstallAppCard';
+import { offlineRepository } from '@/lib/repository/offline-repository';
 
 interface ConsoleWithSession {
   console: Console;
@@ -33,16 +34,55 @@ export function DashboardClientView({
   );
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
+  const loadDataFromIDB = async () => {
+    try {
+      const localConsoles = await offlineRepository.getConsoles();
+      const localSettings = await offlineRepository.getSettings();
+
+      if (localSettings) setSettings(localSettings);
+
+      if (localConsoles && localConsoles.length > 0) {
+        const activeConsoles = localConsoles.filter((c) => c.is_active !== false);
+        const mapped = await Promise.all(
+          activeConsoles.map(async (c) => {
+            const active_session = await offlineRepository.getActiveSessionByConsoleId(c.id);
+            return {
+              console: c,
+              active_session,
+            };
+          })
+        );
+        setConsolesWithSessions(mapped);
+      }
+    } catch (err) {
+      console.warn('Error loading IDB floor data:', err);
+    }
+  };
+
   useEffect(() => {
     if (initialConsolesWithSessions && initialConsolesWithSessions.length > 0) {
       setConsolesWithSessions(initialConsolesWithSessions);
+    } else {
+      loadDataFromIDB();
     }
+
     if (initialSettings) {
       setSettings(initialSettings);
     }
   }, [initialConsolesWithSessions, initialSettings]);
 
-  const activeTvCount = consolesWithSessions.filter((cs) => cs.console.is_active).length;
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      loadDataFromIDB();
+    };
+
+    window.addEventListener('ghost_data_updated', handleDataUpdate);
+    return () => {
+      window.removeEventListener('ghost_data_updated', handleDataUpdate);
+    };
+  }, []);
+
+  const activeTvCount = consolesWithSessions.filter((cs) => cs.console.is_active !== false).length;
 
   return (
     <div className="space-y-8">
