@@ -83,6 +83,18 @@ function getNextTvNumber(consoles: Console[]): number {
   return maxNum + 1;
 }
 
+function isSchemaCacheError(errMessage?: string): boolean {
+  if (!errMessage) return false;
+  const lower = errMessage.toLowerCase();
+  return (
+    lower.includes('tenant_id') ||
+    lower.includes('schema cache') ||
+    lower.includes('column') ||
+    lower.includes('pgrst204') ||
+    lower.includes('relation')
+  );
+}
+
 // --- Local Pure JS FileSystem Persistence Repository ---
 const fsRepository: Repository = {
   async getSettings(tenantId?: string): Promise<Settings> {
@@ -665,37 +677,49 @@ const supabaseRepository: Repository = {
   async getSettings(tenantId?: string): Promise<Settings> {
     const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const { data } = await client.from('settings').select('*').eq('tenant_id', tId).limit(1);
+
+    let { data, error } = await client.from('settings').select('*').eq('tenant_id', tId).limit(1);
+    if (error && isSchemaCacheError(error.message)) {
+      const fallback = await client.from('settings').select('*').limit(1);
+      data = fallback.data;
+    }
+
     const settingsData = data && data.length > 0 ? data[0] : null;
 
     let history_cleared_at = settingsData?.history_cleared_at || undefined;
     let reports_reset_at = settingsData?.reports_reset_at || undefined;
 
     if (!history_cleared_at) {
-      const { data: adjClear } = await client
-        .from('adjustments')
-        .select('reason')
-        .eq('tenant_id', tId)
-        .like('reason', 'SYSTEM_HISTORY_CLEAR:%')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      try {
+        const { data: adjClear } = await client
+          .from('adjustments')
+          .select('reason')
+          .like('reason', 'SYSTEM_HISTORY_CLEAR:%')
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (adjClear && adjClear.length > 0) {
-        history_cleared_at = adjClear[0].reason.replace('SYSTEM_HISTORY_CLEAR:', '');
+        if (adjClear && adjClear.length > 0) {
+          history_cleared_at = adjClear[0].reason.replace('SYSTEM_HISTORY_CLEAR:', '');
+        }
+      } catch (err) {
+        // ignore fallback check if adjustments table fails
       }
     }
 
     if (!reports_reset_at) {
-      const { data: adjReset } = await client
-        .from('adjustments')
-        .select('reason')
-        .eq('tenant_id', tId)
-        .like('reason', 'SYSTEM_REPORTS_RESET:%')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      try {
+        const { data: adjReset } = await client
+          .from('adjustments')
+          .select('reason')
+          .like('reason', 'SYSTEM_REPORTS_RESET:%')
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-      if (adjReset && adjReset.length > 0) {
-        reports_reset_at = adjReset[0].reason.replace('SYSTEM_REPORTS_RESET:', '');
+        if (adjReset && adjReset.length > 0) {
+          reports_reset_at = adjReset[0].reason.replace('SYSTEM_REPORTS_RESET:', '');
+        }
+      } catch (err) {
+        // ignore fallback
       }
     }
 
@@ -715,7 +739,11 @@ const supabaseRepository: Repository = {
     const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
 
-    const { data: existing } = await client.from('settings').select('id').eq('tenant_id', tId).limit(1);
+    let { data: existing, error: selErr } = await client.from('settings').select('id').eq('tenant_id', tId).limit(1);
+    if (selErr && isSchemaCacheError(selErr.message)) {
+      const fallback = await client.from('settings').select('id').limit(1);
+      existing = fallback.data;
+    }
 
     if (existing && existing.length > 0) {
       const { data, error } = await client
@@ -735,11 +763,19 @@ const supabaseRepository: Repository = {
         updated_at: data.updated_at,
       };
     } else {
-      const { data, error } = await client
+      const payload: any = { tenant_id: tId, fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() };
+      let { data, error } = await client
         .from('settings')
-        .insert({ tenant_id: tId, fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
+        .insert(payload)
         .select()
         .single();
+
+      if (error && isSchemaCacheError(error.message)) {
+        delete payload.tenant_id;
+        const retry = await client.from('settings').insert(payload).select().single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) throw new Error(error.message);
       return {
@@ -756,11 +792,21 @@ const supabaseRepository: Repository = {
   async getConsoles(tenantId?: string): Promise<Console[]> {
     const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const { data, error } = await client
+
+    let { data, error } = await client
       .from('consoles')
       .select('*')
       .eq('tenant_id', tId)
       .order('display_order', { ascending: true });
+
+    if (error && isSchemaCacheError(error.message)) {
+      const fallback = await client
+        .from('consoles')
+        .select('*')
+        .order('display_order', { ascending: true });
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error || !data) return [];
     return data as Console[];
@@ -773,13 +819,22 @@ const supabaseRepository: Repository = {
     const nextNum = getNextTvNumber(consoles);
     const name = `TV ${nextNum}`;
 
-    const { data, error } = await client.from('consoles').insert({
+    const payload: any = {
       name,
       tenant_id: tId,
       status: 'AVAILABLE',
       display_order: consoles.length + 1,
       is_active: true
-    }).select().single();
+    };
+
+    let { data, error } = await client.from('consoles').insert(payload).select().single();
+
+    if (error && isSchemaCacheError(error.message)) {
+      delete payload.tenant_id;
+      const retry = await client.from('consoles').insert(payload).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error || !data) throw new Error(error?.message || 'Failed to add TV station');
     return data as Console;
@@ -874,11 +929,18 @@ const supabaseRepository: Repository = {
       insertPayload.id = customSessionId;
     }
 
-    const { data: session, error } = await client
+    let { data: session, error } = await client
       .from('sessions')
       .insert(insertPayload)
       .select()
       .single();
+
+    if (error && isSchemaCacheError(error.message)) {
+      delete insertPayload.tenant_id;
+      const retry = await client.from('sessions').insert(insertPayload).select().single();
+      session = retry.data;
+      error = retry.error;
+    }
 
     if (error || !session) throw new Error(error?.message || 'Failed to start session');
 
@@ -911,20 +973,29 @@ const supabaseRepository: Repository = {
     const nextMatchNum = (session.matches?.length || 0) + 1;
     const basePrice = settings.fifa_normal_price;
 
-    const { data: createdMatch, error } = await client
+    const matchPayload: any = {
+      session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
+      match_number: nextMatchNum,
+      base_price: basePrice,
+      extra_time: false,
+      extra_time_price: 0.00,
+      total_price: basePrice,
+      client_idempotency_key: idempotencyKey || null,
+    };
+
+    let { data: createdMatch, error } = await client
       .from('matches')
-      .insert({
-        session_id: sessionId,
-        tenant_id: session.tenant_id || 't-default',
-        match_number: nextMatchNum,
-        base_price: basePrice,
-        extra_time: false,
-        extra_time_price: 0.00,
-        total_price: basePrice,
-        client_idempotency_key: idempotencyKey || null,
-      })
+      .insert(matchPayload)
       .select()
       .single();
+
+    if (error && isSchemaCacheError(error.message)) {
+      delete matchPayload.tenant_id;
+      const retry = await client.from('matches').insert(matchPayload).select().single();
+      createdMatch = retry.data;
+      error = retry.error;
+    }
 
     if (error || !createdMatch) throw new Error(error?.message || 'Failed to create match');
 
@@ -1017,13 +1088,19 @@ const supabaseRepository: Repository = {
     const finalTotal = session.total_amount;
     const now = new Date().toISOString();
 
-    await client.from('payments').insert({
+    const paymentPayload: any = {
       session_id: sessionId,
       tenant_id: session.tenant_id || 't-default',
       method: paymentMethod,
       amount: finalTotal,
       reference: reference || null,
-    });
+    };
+
+    let { error } = await client.from('payments').insert(paymentPayload);
+    if (error && isSchemaCacheError(error.message)) {
+      delete paymentPayload.tenant_id;
+      await client.from('payments').insert(paymentPayload);
+    }
 
     await client
       .from('sessions')
@@ -1050,19 +1127,28 @@ const supabaseRepository: Repository = {
     const originalAmount = session.total_amount;
     const resultingAmount = originalAmount + adjustmentAmount;
 
-    const { data: adj, error } = await client
+    const adjPayload: any = {
+      session_id: sessionId,
+      tenant_id: session.tenant_id || 't-default',
+      original_amount: originalAmount,
+      adjustment_amount: adjustmentAmount,
+      resulting_amount: resultingAmount,
+      reason,
+      created_by: createdBy,
+    };
+
+    let { data: adj, error } = await client
       .from('adjustments')
-      .insert({
-        session_id: sessionId,
-        tenant_id: session.tenant_id || 't-default',
-        original_amount: originalAmount,
-        adjustment_amount: adjustmentAmount,
-        resulting_amount: resultingAmount,
-        reason,
-        created_by: createdBy,
-      })
+      .insert(adjPayload)
       .select()
       .single();
+
+    if (error && isSchemaCacheError(error.message)) {
+      delete adjPayload.tenant_id;
+      const retry = await client.from('adjustments').insert(adjPayload).select().single();
+      adj = retry.data;
+      error = retry.error;
+    }
 
     if (error || !adj) throw new Error(error?.message || 'Failed to create adjustment');
 
@@ -1084,7 +1170,8 @@ const supabaseRepository: Repository = {
     const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
     const settings = await this.getSettings(tId);
-    const query = client
+
+    let { data, error } = await client
       .from('sessions')
       .select('id, created_at, finished_at')
       .eq('tenant_id', tId)
@@ -1092,7 +1179,16 @@ const supabaseRepository: Repository = {
       .order('created_at', { ascending: false })
       .limit(limit * 2);
 
-    const { data } = await query;
+    if (error && isSchemaCacheError(error.message)) {
+      const fallback = await client
+        .from('sessions')
+        .select('id, created_at, finished_at')
+        .eq('status', 'FINISHED')
+        .order('created_at', { ascending: false })
+        .limit(limit * 2);
+      data = fallback.data;
+    }
+
     if (!data) return [];
 
     const clearedAtTime = settings.history_cleared_at
@@ -1118,26 +1214,37 @@ const supabaseRepository: Repository = {
     const now = new Date().toISOString();
     const previousHistory = await this.getSessionsHistory(1000, tId);
 
-    // 1. Attempt to update settings table if column history_cleared_at exists
-    await client
-      .from('settings')
-      .update({ history_cleared_at: now, updated_at: now })
-      .eq('tenant_id', tId);
+    try {
+      await client
+        .from('settings')
+        .update({ history_cleared_at: now, updated_at: now })
+        .eq('tenant_id', tId);
+    } catch (err) {
+      // ignore
+    }
 
-    // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').eq('tenant_id', tId).limit(1);
-    const sessionId = session && session.length > 0 ? session[0].id : null;
+    try {
+      const { data: session } = await client.from('sessions').select('id').limit(1);
+      const sessionId = session && session.length > 0 ? session[0].id : null;
 
-    if (sessionId) {
-      await client.from('adjustments').insert({
-        session_id: sessionId,
-        tenant_id: tId,
-        original_amount: 0,
-        adjustment_amount: 0,
-        resulting_amount: 0,
-        reason: 'SYSTEM_HISTORY_CLEAR:' + now,
-        created_by: 'System',
-      });
+      if (sessionId) {
+        const payload: any = {
+          session_id: sessionId,
+          tenant_id: tId,
+          original_amount: 0,
+          adjustment_amount: 0,
+          resulting_amount: 0,
+          reason: 'SYSTEM_HISTORY_CLEAR:' + now,
+          created_by: 'System',
+        };
+        let { error } = await client.from('adjustments').insert(payload);
+        if (error && isSchemaCacheError(error.message)) {
+          delete payload.tenant_id;
+          await client.from('adjustments').insert(payload);
+        }
+      }
+    } catch (err) {
+      // ignore
     }
 
     return { deletedCount: previousHistory.length };
@@ -1152,26 +1259,37 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const now = new Date().toISOString();
 
-    // 1. Attempt to update settings table if column reports_reset_at exists
-    await client
-      .from('settings')
-      .update({ reports_reset_at: now, updated_at: now })
-      .eq('tenant_id', tId);
+    try {
+      await client
+        .from('settings')
+        .update({ reports_reset_at: now, updated_at: now })
+        .eq('tenant_id', tId);
+    } catch (err) {
+      // ignore
+    }
 
-    // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').eq('tenant_id', tId).limit(1);
-    const sessionId = session && session.length > 0 ? session[0].id : null;
+    try {
+      const { data: session } = await client.from('sessions').select('id').limit(1);
+      const sessionId = session && session.length > 0 ? session[0].id : null;
 
-    if (sessionId) {
-      await client.from('adjustments').insert({
-        session_id: sessionId,
-        tenant_id: tId,
-        original_amount: 0,
-        adjustment_amount: 0,
-        resulting_amount: 0,
-        reason: 'SYSTEM_REPORTS_RESET:' + now,
-        created_by: 'System',
-      });
+      if (sessionId) {
+        const payload: any = {
+          session_id: sessionId,
+          tenant_id: tId,
+          original_amount: 0,
+          adjustment_amount: 0,
+          resulting_amount: 0,
+          reason: 'SYSTEM_REPORTS_RESET:' + now,
+          created_by: 'System',
+        };
+        let { error } = await client.from('adjustments').insert(payload);
+        if (error && isSchemaCacheError(error.message)) {
+          delete payload.tenant_id;
+          await client.from('adjustments').insert(payload);
+        }
+      }
+    } catch (err) {
+      // ignore
     }
 
     return { deletedCount: 1 };
@@ -1182,11 +1300,19 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const settings = await this.getSettings(tId);
 
-    const { data } = await client
+    let { data, error } = await client
       .from('sessions')
       .select('id, created_at, finished_at')
       .eq('tenant_id', tId)
       .eq('status', 'FINISHED');
+
+    if (error && isSchemaCacheError(error.message)) {
+      const fallback = await client
+        .from('sessions')
+        .select('id, created_at, finished_at')
+        .eq('status', 'FINISHED');
+      data = fallback.data;
+    }
 
     const resetAtTime = settings.reports_reset_at
       ? new Date(settings.reports_reset_at).getTime()
