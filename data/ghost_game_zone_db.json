@@ -32,7 +32,7 @@
       "status": "AVAILABLE",
       "display_order": 1,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.837Z"
+      "created_at": "2026-10-14T12:26:23.777Z"
     },
     {
       "id": "c-2",
@@ -40,7 +40,7 @@
       "status": "PLAYING",
       "display_order": 2,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.837Z"
+      "created_at": "2026-10-14T12:26:23.777Z"
     },
     {
       "id": "c-3",
@@ -48,7 +48,7 @@
       "status": "AVAILABLE",
       "display_order": 3,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.837Z"
+      "created_at": "2026-10-14T12:26:23.777Z"
     },
     {
       "id": "c-t-default-4",
@@ -57,7 +57,7 @@
       "status": "AVAILABLE",
       "display_order": 4,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.855Z"
+      "created_at": "2026-10-14T12:26:23.794Z"
     },
     {
       "id": "c-t-default-5",
@@ -66,7 +66,7 @@
       "status": "AVAILABLE",
       "display_order": 5,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.856Z"
+      "created_at": "2026-10-14T12:26:23.795Z"
     },
     {
       "id": "c-t-default-6",
@@ -75,7 +75,7 @@
       "status": "AVAILABLE",
       "display_order": 6,
       "is_active": true,
-      "created_at": "2026-10-14T12:15:11.856Z"
+      "created_at": "2026-10-14T12:26:23.797Z"
     }
   ],
   "settings": {
@@ -83,92 +83,92 @@
     "fifa_normal_price": 15,
     "fifa_extra_time_price": 5,
     "currency": "ETB",
-    "updated_at": "2026-10-14T12:15:11.861Z",
-    "history_cleared_at": "2026-10-14T12:15:11.861Z"
+    "updated_at": "2026-10-14T12:26:23.804Z",
+    "history_cleared_at": "2026-10-14T12:26:23.804Z"
   },
   "sessions": [
     {
-      "id": "999fd2de-27b6-4e08-82b2-d0006b7f88db",
+      "id": "da047d68-92fa-4e0a-ae07-8c894aa5cc0f",
       "console_id": "c-1",
       "tenant_id": "t-default",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "FINISHED",
-      "started_at": "2026-10-14T12:15:11.839Z",
+      "started_at": "2026-10-14T12:26:23.780Z",
       "total_amount": 50,
       "payment_status": "PAID",
       "created_by": "Tester",
-      "created_at": "2026-10-14T12:15:11.839Z",
-      "finished_at": "2026-10-14T12:15:11.854Z"
+      "created_at": "2026-10-14T12:26:23.780Z",
+      "finished_at": "2026-10-14T12:26:23.792Z"
     },
     {
-      "id": "1f67c1f0-c122-43bb-bdd5-eff473941976",
+      "id": "0274299a-de4b-4b1b-9f96-78caf0a7f468",
       "console_id": "c-2",
       "tenant_id": "t-default",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "ACTIVE",
-      "started_at": "2026-10-14T12:15:11.859Z",
+      "started_at": "2026-10-14T12:26:23.801Z",
       "total_amount": 15,
       "payment_status": "UNPAID",
       "created_by": "ActivePlayer",
-      "created_at": "2026-10-14T12:15:11.859Z"
+      "created_at": "2026-10-14T12:26:23.801Z"
     }
   ],
   "matches": [
     {
-      "id": "20f46a32-da08-484f-af22-462f8709e1d3",
-      "session_id": "999fd2de-27b6-4e08-82b2-d0006b7f88db",
+      "id": "debf09a8-d670-4e7a-8008-ec28c4c6954a",
+      "session_id": "da047d68-92fa-4e0a-ae07-8c894aa5cc0f",
       "tenant_id": "t-default",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-14T12:15:11.840Z"
+      "created_at": "2026-10-14T12:26:23.782Z"
     },
     {
-      "id": "916fc049-7002-4496-8f35-76232c0c130d",
-      "session_id": "999fd2de-27b6-4e08-82b2-d0006b7f88db",
+      "id": "9ad38066-175c-47a6-bc7c-649d46d64b49",
+      "session_id": "da047d68-92fa-4e0a-ae07-8c894aa5cc0f",
       "tenant_id": "t-default",
       "match_number": 2,
       "base_price": 15,
       "extra_time": true,
       "extra_time_price": 5,
       "total_price": 20,
-      "created_at": "2026-10-14T12:15:11.843Z"
+      "created_at": "2026-10-14T12:26:23.784Z"
     },
     {
-      "id": "15aebaa1-d09f-4e41-b733-8f8d1ac5b9f1",
-      "session_id": "999fd2de-27b6-4e08-82b2-d0006b7f88db",
+      "id": "d43a22d8-b2da-49ea-92a2-e71080df800f",
+      "session_id": "da047d68-92fa-4e0a-ae07-8c894aa5cc0f",
       "tenant_id": "t-default",
       "match_number": 3,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-14T12:15:11.848Z"
+      "created_at": "2026-10-14T12:26:23.787Z"
     },
     {
-      "id": "20a129ec-b539-4d49-bd87-1150ec676c75",
-      "session_id": "1f67c1f0-c122-43bb-bdd5-eff473941976",
+      "id": "1046f447-7f47-428d-b1b3-900404dec308",
+      "session_id": "0274299a-de4b-4b1b-9f96-78caf0a7f468",
       "tenant_id": "t-default",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-14T12:15:11.859Z"
+      "created_at": "2026-10-14T12:26:23.802Z"
     }
   ],
   "payments": [
     {
-      "id": "ebda3014-56ee-4c26-87ca-cf731665ea90",
-      "session_id": "999fd2de-27b6-4e08-82b2-d0006b7f88db",
+      "id": "a9cf51fd-ecb3-4b52-9bf1-b1af47c13e2c",
+      "session_id": "da047d68-92fa-4e0a-ae07-8c894aa5cc0f",
       "tenant_id": "t-default",
       "method": "CASH",
       "amount": 50,
-      "created_at": "2026-10-14T12:15:11.854Z"
+      "created_at": "2026-10-14T12:26:23.792Z"
     }
   ],
   "adjustments": [],
@@ -434,6 +434,17 @@
       "license_status": "PAID",
       "status": "ACTIVE",
       "created_at": "2026-10-14T12:03:48.290Z"
+    },
+    {
+      "id": "t-bd32a474",
+      "game_zone_name": "Test Zone 1791980757310 (Renamed)",
+      "owner_contact_name": "Abebe Kebede",
+      "username": "cust_1791980757310",
+      "password": "pass_1791980757310",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-14T12:25:57.310Z"
     }
   ]
 }
