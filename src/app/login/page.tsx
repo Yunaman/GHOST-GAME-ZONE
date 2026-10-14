@@ -7,7 +7,7 @@ import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'luci
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('yunaonice');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
+                placeholder="Enter registered username"
                 required
                 className="w-full pl-10 pr-4 py-3 bg-black/80 border border-purple-900/60 rounded-xl text-white font-gaming text-sm outline-none focus:border-purple-400 transition-colors"
               />
