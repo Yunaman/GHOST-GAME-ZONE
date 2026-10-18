@@ -177,59 +177,35 @@ export async function processSyncQueue(): Promise<void> {
   }
 }
 
-// Download cloud state to Local IndexedDB
+import { getConsolesWithActiveSessionsAction } from '@/app/actions';
+
+// Download cloud state to Local IndexedDB via server actions (tenant-scoped)
 export async function downloadCloudToIndexedDB(): Promise<void> {
-  if (typeof window === 'undefined' || !navigator.onLine || !supabase) return;
+  if (typeof window === 'undefined' || !navigator.onLine) return;
 
   try {
-    const { data: settings } = await supabase.from('settings').select('*').limit(1);
-    if (settings && settings.length > 0) {
-      const s = settings[0];
-      await idbPut('settings', {
-        id: s.id || 'default',
-        fifa_normal_price: Number(s.fifa_normal_price),
-        fifa_extra_time_price: Number(s.fifa_extra_time_price),
-        currency: s.currency,
-        history_cleared_at: s.history_cleared_at || undefined,
-        reports_reset_at: s.reports_reset_at || undefined,
-        updated_at: s.updated_at,
-      });
-    }
-
-    const { data: consoles } = await supabase.from('consoles').select('*').order('display_order', { ascending: true });
-    if (consoles && consoles.length > 0) {
-      for (const c of consoles) {
+    const res = await getConsolesWithActiveSessionsAction();
+    if (res.success && res.allConsoles) {
+      for (const c of res.allConsoles) {
         await idbPut('consoles', c);
       }
-    }
-
-    const { data: sessions } = await supabase.from('sessions').select('*').order('created_at', { ascending: false }).limit(100);
-    if (sessions) {
-      for (const s of sessions) {
-        await idbPut('sessions', { ...s, total_amount: Number(s.total_amount) });
+      if (res.settings) {
+        await idbPut('settings', res.settings);
       }
-    }
-
-    const { data: matches } = await supabase.from('matches').select('*').order('match_number', { ascending: true });
-    if (matches) {
-      for (const m of matches) {
-        await idbPut('matches', {
-          ...m,
-          base_price: Number(m.base_price),
-          extra_time_price: Number(m.extra_time_price),
-          total_price: Number(m.total_price),
-        });
+      if (res.data) {
+        for (const item of res.data) {
+          if (item.active_session) {
+            await idbPut('sessions', item.active_session);
+            if (item.active_session.matches) {
+              for (const m of item.active_session.matches) {
+                await idbPut('matches', m);
+              }
+            }
+          }
+        }
       }
+      notifyDataChanged();
     }
-
-    const { data: payments } = await supabase.from('payments').select('*');
-    if (payments) {
-      for (const p of payments) {
-        await idbPut('payments', { ...p, amount: Number(p.amount) });
-      }
-    }
-
-    notifyDataChanged();
   } catch (err) {
     console.warn('downloadCloudToIndexedDB sync warning:', err);
   }

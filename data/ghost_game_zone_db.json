@@ -76,6 +76,114 @@
       "display_order": 6,
       "is_active": true,
       "created_at": "2026-10-14T12:26:23.797Z"
+    },
+    {
+      "id": "c-t-a1c8790d-1",
+      "tenant_id": "t-a1c8790d",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-a1c8790d-2",
+      "tenant_id": "t-a1c8790d",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-a1c8790d-3",
+      "tenant_id": "t-a1c8790d",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-420769a8-1",
+      "tenant_id": "t-420769a8",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-420769a8-2",
+      "tenant_id": "t-420769a8",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-420769a8-3",
+      "tenant_id": "t-420769a8",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "c-t-6f065f9d-1",
+      "tenant_id": "t-6f065f9d",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.702Z"
+    },
+    {
+      "id": "c-t-6f065f9d-2",
+      "tenant_id": "t-6f065f9d",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.702Z"
+    },
+    {
+      "id": "c-t-6f065f9d-3",
+      "tenant_id": "t-6f065f9d",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.702Z"
+    },
+    {
+      "id": "c-t-31b0b497-1",
+      "tenant_id": "t-31b0b497",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.705Z"
+    },
+    {
+      "id": "c-t-31b0b497-2",
+      "tenant_id": "t-31b0b497",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.705Z"
+    },
+    {
+      "id": "c-t-31b0b497-3",
+      "tenant_id": "t-31b0b497",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-18T14:42:40.705Z"
     }
   ],
   "settings": {
@@ -113,6 +221,20 @@
       "payment_status": "UNPAID",
       "created_by": "ActivePlayer",
       "created_at": "2026-10-14T12:26:23.801Z"
+    },
+    {
+      "id": "a471b2cb-bd64-48cb-bdc3-90c32dfe277d",
+      "console_id": "c-t-6f065f9d-1",
+      "tenant_id": "t-6f065f9d",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-18T14:42:40.706Z",
+      "total_amount": 15,
+      "payment_status": "PAID",
+      "created_by": "Staff A",
+      "created_at": "2026-10-18T14:42:40.706Z",
+      "finished_at": "2026-10-18T14:42:40.713Z"
     }
   ],
   "matches": [
@@ -159,6 +281,18 @@
       "extra_time_price": 0,
       "total_price": 15,
       "created_at": "2026-10-14T12:26:23.802Z"
+    },
+    {
+      "id": "f1f92e9d-3c88-4017-ac7d-067af30359eb",
+      "session_id": "a471b2cb-bd64-48cb-bdc3-90c32dfe277d",
+      "tenant_id": "t-6f065f9d",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "client_idempotency_key": "idemp-a-1792334560710",
+      "created_at": "2026-10-18T14:42:40.710Z"
     }
   ],
   "payments": [
@@ -169,6 +303,14 @@
       "method": "CASH",
       "amount": 50,
       "created_at": "2026-10-14T12:26:23.792Z"
+    },
+    {
+      "id": "f65a643c-c046-4f01-a1d9-504e2ba73b1d",
+      "session_id": "a471b2cb-bd64-48cb-bdc3-90c32dfe277d",
+      "tenant_id": "t-6f065f9d",
+      "method": "CASH",
+      "amount": 15,
+      "created_at": "2026-10-18T14:42:40.713Z"
     }
   ],
   "adjustments": [],
@@ -445,6 +587,50 @@
       "license_status": "PAID",
       "status": "ACTIVE",
       "created_at": "2026-10-14T12:25:57.310Z"
+    },
+    {
+      "id": "t-a1c8790d",
+      "game_zone_name": "Zone Alpha 1792333253717",
+      "owner_contact_name": "Contact Alpha",
+      "username": "user_a_1792333253717",
+      "password": "alpha123",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "t-420769a8",
+      "game_zone_name": "Zone Beta 1792333253718",
+      "owner_contact_name": "Contact Beta",
+      "username": "user_b_1792333253718",
+      "password": "beta123",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-18T14:20:53.718Z"
+    },
+    {
+      "id": "t-6f065f9d",
+      "game_zone_name": "Game Zone Alpha",
+      "owner_contact_name": "Owner A",
+      "username": "user_a_1792334560701",
+      "password": "passA",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-18T14:42:40.702Z"
+    },
+    {
+      "id": "t-31b0b497",
+      "game_zone_name": "Game Zone Beta",
+      "owner_contact_name": "Owner B",
+      "username": "user_b_1792334560705",
+      "password": "passB",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-18T14:42:40.705Z"
     }
   ]
 }

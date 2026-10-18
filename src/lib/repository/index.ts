@@ -22,8 +22,8 @@ export interface Repository {
   addConsole(tenantId?: string): Promise<Console>;
   updateConsoleName(id: string, name: string): Promise<Console>;
   toggleConsoleActive(id: string, isActive: boolean): Promise<Console>;
-  getActiveSessionByConsoleId(consoleId: string): Promise<Session | null>;
-  getSessionById(sessionId: string): Promise<Session | null>;
+  getActiveSessionByConsoleId(consoleId: string, tenantId?: string): Promise<Session | null>;
+  getSessionById(sessionId: string, tenantId?: string): Promise<Session | null>;
   startSession(consoleId: string, createdBy?: string, customSessionId?: string, tenantId?: string): Promise<Session>;
   addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }>;
   toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }>;
@@ -156,34 +156,38 @@ const fsRepository: Repository = {
   },
 
   async updateConsoleName(id: string, name: string): Promise<Console> {
+    const tId = await resolveTenantId();
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === id);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find((c) => c.id === id && (c.tenant_id || 't-default') === tId);
+    if (!consoleObj) throw new Error('Console TV not found or unauthorized');
     consoleObj.name = name;
     saveDb(db);
     return consoleObj;
   },
 
   async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+    const tId = await resolveTenantId();
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === id);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find((c) => c.id === id && (c.tenant_id || 't-default') === tId);
+    if (!consoleObj) throw new Error('Console TV not found or unauthorized');
     consoleObj.is_active = isActive;
     saveDb(db);
     return consoleObj;
   },
 
-  async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
+  async getActiveSessionByConsoleId(consoleId: string, tenantId?: string): Promise<Session | null> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
+    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE' && (s.tenant_id || 't-default') === tId);
     if (!active) return null;
-    return this.getSessionById(active.id);
+    return this.getSessionById(active.id, tId);
   },
 
-  async getSessionById(sessionId: string): Promise<Session | null> {
+  async getSessionById(sessionId: string, tenantId?: string): Promise<Session | null> {
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) return null;
+    if (tenantId && (session.tenant_id || 't-default') !== tenantId) return null;
 
     const consoleObj = db.consoles.find((c) => c.id === session.console_id);
     const matches = db.matches
@@ -857,36 +861,59 @@ const supabaseRepository: Repository = {
   },
 
   async updateConsoleName(id: string, name: string): Promise<Console> {
+    const tId = await resolveTenantId();
     const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').update({ name }).eq('id', id).select().single();
+    let query = client.from('consoles').update({ name }).eq('id', id).eq('tenant_id', tId).select().single();
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
     return data as Console;
   },
 
   async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+    const tId = await resolveTenantId();
     const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').update({ is_active: isActive }).eq('id', id).select().single();
+    const { data, error } = await client.from('consoles').update({ is_active: isActive }).eq('id', id).eq('tenant_id', tId).select().single();
     if (error) throw new Error(error.message);
     return data as Console;
   },
 
-  async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
+  async getActiveSessionByConsoleId(consoleId: string, tenantId?: string): Promise<Session | null> {
+    const tId = await resolveTenantId(tenantId);
     const client = getSupabaseClient();
-    const { data, error } = await client
+    let query = client
       .from('sessions')
       .select('id')
       .eq('console_id', consoleId)
+      .eq('tenant_id', tId)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(1);
 
+    let { data, error } = await query;
+
+    if (error && isSchemaCacheError(error.message)) {
+      const fallback = await client
+        .from('sessions')
+        .select('id')
+        .eq('console_id', consoleId)
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      data = fallback.data;
+      error = fallback.error;
+    }
+
     if (error || !data || data.length === 0) return null;
-    return this.getSessionById(data[0].id);
+    return this.getSessionById(data[0].id, tId);
   },
 
-  async getSessionById(sessionId: string): Promise<Session | null> {
+  async getSessionById(sessionId: string, tenantId?: string): Promise<Session | null> {
     const client = getSupabaseClient();
-    const { data: session, error } = await client.from('sessions').select('*').eq('id', sessionId).single();
+    let query = client.from('sessions').select('*').eq('id', sessionId);
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+    const { data: session, error } = await query.single();
     if (error || !session) return null;
 
     const { data: consoleObj } = await client.from('consoles').select('name').eq('id', session.console_id).single();

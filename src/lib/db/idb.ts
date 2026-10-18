@@ -128,6 +128,13 @@ export async function idbClear(storeName: string): Promise<void> {
   }
 }
 
+export async function clearAllLocalCachesForAccountSwitch(): Promise<void> {
+  const stores = ['consoles', 'sessions', 'matches', 'payments', 'adjustments', 'settings'];
+  for (const store of stores) {
+    await idbClear(store);
+  }
+}
+
 // Sync Queue specific functions
 export async function addToSyncQueue(item: Omit<SyncQueueItem, 'id'>): Promise<void> {
   await idbPut('sync_queue', item);

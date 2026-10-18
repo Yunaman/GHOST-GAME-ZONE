@@ -3,17 +3,22 @@
 import { revalidatePath } from 'next/cache';
 import { repository } from '@/lib/repository';
 
+import { getAuthUser } from '@/lib/auth';
+
 export async function getConsolesWithActiveSessionsAction() {
   try {
-    const consoles = await repository.getConsoles();
-    const settings = await repository.getSettings();
+    const authUser = await getAuthUser();
+    const tenantId = authUser?.tenant_id || 't-default';
+
+    const consoles = await repository.getConsoles(tenantId);
+    const settings = await repository.getSettings(tenantId);
 
     // Filter active consoles for the dashboard
     const activeConsoles = consoles.filter((c) => c.is_active !== false);
 
     const consolesWithSessions = await Promise.all(
       activeConsoles.map(async (c) => {
-        const active_session = await repository.getActiveSessionByConsoleId(c.id);
+        const active_session = await repository.getActiveSessionByConsoleId(c.id, tenantId);
         return {
           console: c,
           active_session,
