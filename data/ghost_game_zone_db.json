@@ -184,6 +184,114 @@
       "display_order": 3,
       "is_active": true,
       "created_at": "2026-10-18T14:42:40.705Z"
+    },
+    {
+      "id": "c-t-0b4da718-1",
+      "tenant_id": "t-0b4da718",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.430Z"
+    },
+    {
+      "id": "c-t-0b4da718-2",
+      "tenant_id": "t-0b4da718",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.430Z"
+    },
+    {
+      "id": "c-t-0b4da718-3",
+      "tenant_id": "t-0b4da718",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.430Z"
+    },
+    {
+      "id": "c-t-539a2e38-1",
+      "tenant_id": "t-539a2e38",
+      "name": "TV 1",
+      "status": "AVAILABLE",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.433Z"
+    },
+    {
+      "id": "c-t-539a2e38-2",
+      "tenant_id": "t-539a2e38",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.433Z"
+    },
+    {
+      "id": "c-t-539a2e38-3",
+      "tenant_id": "t-539a2e38",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:12.433Z"
+    },
+    {
+      "id": "c-t-77188685-1",
+      "tenant_id": "t-77188685",
+      "name": "TV 1",
+      "status": "PLAYING",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.587Z"
+    },
+    {
+      "id": "c-t-77188685-2",
+      "tenant_id": "t-77188685",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.587Z"
+    },
+    {
+      "id": "c-t-77188685-3",
+      "tenant_id": "t-77188685",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.587Z"
+    },
+    {
+      "id": "c-t-664747cd-1",
+      "tenant_id": "t-664747cd",
+      "name": "TV 1",
+      "status": "PLAYING",
+      "display_order": 1,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.588Z"
+    },
+    {
+      "id": "c-t-664747cd-2",
+      "tenant_id": "t-664747cd",
+      "name": "TV 2",
+      "status": "AVAILABLE",
+      "display_order": 2,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.588Z"
+    },
+    {
+      "id": "c-t-664747cd-3",
+      "tenant_id": "t-664747cd",
+      "name": "TV 3",
+      "status": "AVAILABLE",
+      "display_order": 3,
+      "is_active": true,
+      "created_at": "2026-10-19T08:38:31.588Z"
     }
   ],
   "settings": {
@@ -235,6 +343,46 @@
       "created_by": "Staff A",
       "created_at": "2026-10-18T14:42:40.706Z",
       "finished_at": "2026-10-18T14:42:40.713Z"
+    },
+    {
+      "id": "3493cb46-1652-401d-95c7-771769e95b3d",
+      "console_id": "c-t-0b4da718-1",
+      "tenant_id": "t-0b4da718",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "FINISHED",
+      "started_at": "2026-10-19T08:38:12.435Z",
+      "total_amount": 15,
+      "payment_status": "PAID",
+      "created_by": "Staff A",
+      "created_at": "2026-10-19T08:38:12.435Z",
+      "finished_at": "2026-10-19T08:38:12.444Z"
+    },
+    {
+      "id": "f1b17e9b-2f01-4fd2-94c3-a95237cac1c9",
+      "console_id": "c-t-77188685-1",
+      "tenant_id": "t-77188685",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "ACTIVE",
+      "started_at": "2026-10-19T08:38:31.590Z",
+      "total_amount": 0,
+      "payment_status": "UNPAID",
+      "created_by": "Staff A",
+      "created_at": "2026-10-19T08:38:31.590Z"
+    },
+    {
+      "id": "4ba89660-d967-4a00-894b-8bb6388f28c5",
+      "console_id": "c-t-664747cd-1",
+      "tenant_id": "t-664747cd",
+      "game_type": "FIFA",
+      "billing_type": "MATCH_BASED",
+      "status": "ACTIVE",
+      "started_at": "2026-10-19T08:38:31.591Z",
+      "total_amount": 0,
+      "payment_status": "UNPAID",
+      "created_by": "Staff B",
+      "created_at": "2026-10-19T08:38:31.591Z"
     }
   ],
   "matches": [
@@ -293,6 +441,18 @@
       "total_price": 15,
       "client_idempotency_key": "idemp-a-1792334560710",
       "created_at": "2026-10-18T14:42:40.710Z"
+    },
+    {
+      "id": "2b998cbc-22b4-4657-8ae9-6a1cbb227609",
+      "session_id": "3493cb46-1652-401d-95c7-771769e95b3d",
+      "tenant_id": "t-0b4da718",
+      "match_number": 1,
+      "base_price": 15,
+      "extra_time": false,
+      "extra_time_price": 0,
+      "total_price": 15,
+      "client_idempotency_key": "idemp-a-1792399092440",
+      "created_at": "2026-10-19T08:38:12.440Z"
     }
   ],
   "payments": [
@@ -311,6 +471,14 @@
       "method": "CASH",
       "amount": 15,
       "created_at": "2026-10-18T14:42:40.713Z"
+    },
+    {
+      "id": "62894a38-b9f6-4e6e-a028-5ed94ac5a1c8",
+      "session_id": "3493cb46-1652-401d-95c7-771769e95b3d",
+      "tenant_id": "t-0b4da718",
+      "method": "CASH",
+      "amount": 15,
+      "created_at": "2026-10-19T08:38:12.444Z"
     }
   ],
   "adjustments": [],
@@ -631,6 +799,50 @@
       "license_status": "PAID",
       "status": "ACTIVE",
       "created_at": "2026-10-18T14:42:40.705Z"
+    },
+    {
+      "id": "t-0b4da718",
+      "game_zone_name": "Game Zone Alpha",
+      "owner_contact_name": "Owner A",
+      "username": "user_a_1792399092429",
+      "password": "passA",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-19T08:38:12.430Z"
+    },
+    {
+      "id": "t-539a2e38",
+      "game_zone_name": "Game Zone Beta",
+      "owner_contact_name": "Owner B",
+      "username": "user_b_1792399092432",
+      "password": "passB",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-19T08:38:12.433Z"
+    },
+    {
+      "id": "t-77188685",
+      "game_zone_name": "Zone A",
+      "owner_contact_name": "Contact A",
+      "username": "usera_1792399111586",
+      "password": "p1",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-19T08:38:31.587Z"
+    },
+    {
+      "id": "t-664747cd",
+      "game_zone_name": "Zone B",
+      "owner_contact_name": "Contact B",
+      "username": "userb_1792399111588",
+      "password": "p2",
+      "license_amount": 5000,
+      "license_status": "PAID",
+      "status": "ACTIVE",
+      "created_at": "2026-10-19T08:38:31.588Z"
     }
   ]
 }

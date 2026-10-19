@@ -208,14 +208,14 @@ const fsRepository: Repository = {
   },
 
   async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string, tenantId?: string): Promise<Session> {
+    const tId = await resolveTenantId(tenantId);
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === consoleId);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find((c) => c.id === consoleId && (c.tenant_id || 't-default') === tId);
+    if (!consoleObj) throw new Error('Console TV not found or unauthorized');
 
-    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
+    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE' && (s.tenant_id || 't-default') === tId);
     if (active) throw new Error('TV already has an active session');
 
-    const tId = tenantId || consoleObj.tenant_id || (await resolveTenantId());
     const sessionId = customSessionId || cryptoRandomUUID();
     const now = new Date().toISOString();
 
@@ -943,20 +943,33 @@ const supabaseRepository: Repository = {
 
   async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string, tenantId?: string): Promise<Session> {
     const client = getSupabaseClient();
+    const tId = await resolveTenantId(tenantId);
 
-    const { data: existing } = await client
+    let query = client
       .from('sessions')
       .select('id')
       .eq('console_id', consoleId)
+      .eq('tenant_id', tId)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(1);
 
+    let { data: existing, error: checkErr } = await query;
+
+    if (checkErr && isSchemaCacheError(checkErr.message)) {
+      const fallback = await client
+        .from('sessions')
+        .select('id')
+        .eq('console_id', consoleId)
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      existing = fallback.data;
+    }
+
     if (existing && existing.length > 0) {
       throw new Error('TV already has an active session');
     }
-
-    const tId = await resolveTenantId(tenantId);
 
     const insertPayload: any = {
       console_id: consoleId,
