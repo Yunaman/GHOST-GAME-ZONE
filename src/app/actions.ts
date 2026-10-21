@@ -2,18 +2,44 @@
 
 import { revalidatePath } from 'next/cache';
 import { repository } from '@/lib/repository';
+import { getAuthUser } from '@/lib/auth';
+import { isSupabaseConfigured, supabase } from '@/lib/db/supabase';
+
+async function getValidatedTenantId(): Promise<string> {
+  const user = await getAuthUser();
+  if (!user) {
+    throw new Error('Unauthenticated');
+  }
+
+  const tenantId = user.tenant_id || 't-original';
+
+  // Verify account is not suspended in database
+  if (isSupabaseConfigured && supabase && tenantId !== 't-owner') {
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('account_status')
+      .eq('id', tenantId)
+      .single();
+
+    if (tenant && tenant.account_status === 'SUSPENDED') {
+      throw new Error('Account is suspended. Please contact admin.');
+    }
+  }
+
+  return tenantId;
+}
 
 export async function getConsolesWithActiveSessionsAction() {
   try {
-    const consoles = await repository.getConsoles();
-    const settings = await repository.getSettings();
+    const tenantId = await getValidatedTenantId();
+    const consoles = await repository.getConsoles(tenantId);
+    const settings = await repository.getSettings(tenantId);
 
-    // Filter active consoles for the dashboard
     const activeConsoles = consoles.filter((c) => c.is_active !== false);
 
     const consolesWithSessions = await Promise.all(
       activeConsoles.map(async (c) => {
-        const active_session = await repository.getActiveSessionByConsoleId(c.id);
+        const active_session = await repository.getActiveSessionByConsoleId(c.id, tenantId);
         return {
           console: c,
           active_session,
@@ -29,7 +55,8 @@ export async function getConsolesWithActiveSessionsAction() {
 
 export async function addConsoleAction() {
   try {
-    const newConsole = await repository.addConsole();
+    const tenantId = await getValidatedTenantId();
+    const newConsole = await repository.addConsole(tenantId);
     revalidatePath('/');
     revalidatePath('/settings');
     return { success: true, data: newConsole };
@@ -40,7 +67,8 @@ export async function addConsoleAction() {
 
 export async function toggleConsoleActiveAction(consoleId: string, isActive: boolean) {
   try {
-    const updated = await repository.toggleConsoleActive(consoleId, isActive);
+    const tenantId = await getValidatedTenantId();
+    const updated = await repository.toggleConsoleActive(consoleId, isActive, tenantId);
     revalidatePath('/');
     revalidatePath('/settings');
     return { success: true, data: updated };
@@ -51,7 +79,8 @@ export async function toggleConsoleActiveAction(consoleId: string, isActive: boo
 
 export async function startSessionAction(consoleId: string, createdBy = 'Staff', customSessionId?: string) {
   try {
-    const session = await repository.startSession(consoleId, createdBy, customSessionId);
+    const tenantId = await getValidatedTenantId();
+    const session = await repository.startSession(consoleId, createdBy, customSessionId, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     return { success: true, data: session };
@@ -62,7 +91,8 @@ export async function startSessionAction(consoleId: string, createdBy = 'Staff',
 
 export async function addMatchAction(sessionId: string, idempotencyKey?: string) {
   try {
-    const result = await repository.addMatch(sessionId, idempotencyKey);
+    const tenantId = await getValidatedTenantId();
+    const result = await repository.addMatch(sessionId, idempotencyKey, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     return { success: true, data: result };
@@ -73,7 +103,8 @@ export async function addMatchAction(sessionId: string, idempotencyKey?: string)
 
 export async function toggleMatchExtraTimeAction(sessionId: string, matchId: string) {
   try {
-    const result = await repository.toggleMatchExtraTime(sessionId, matchId);
+    const tenantId = await getValidatedTenantId();
+    const result = await repository.toggleMatchExtraTime(sessionId, matchId, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     return { success: true, data: result };
@@ -84,7 +115,8 @@ export async function toggleMatchExtraTimeAction(sessionId: string, matchId: str
 
 export async function undoLastMatchAction(sessionId: string) {
   try {
-    const result = await repository.undoLastMatch(sessionId);
+    const tenantId = await getValidatedTenantId();
+    const result = await repository.undoLastMatch(sessionId, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     return { success: true, data: result };
@@ -95,7 +127,8 @@ export async function undoLastMatchAction(sessionId: string) {
 
 export async function finishSessionAction(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string) {
   try {
-    const session = await repository.finishSession(sessionId, paymentMethod, reference);
+    const tenantId = await getValidatedTenantId();
+    const session = await repository.finishSession(sessionId, paymentMethod, reference, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     revalidatePath('/reports');
@@ -107,7 +140,8 @@ export async function finishSessionAction(sessionId: string, paymentMethod: 'CAS
 
 export async function createAdjustmentAction(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager') {
   try {
-    const adjustment = await repository.createAdjustment(sessionId, adjustmentAmount, reason, createdBy);
+    const tenantId = await getValidatedTenantId();
+    const adjustment = await repository.createAdjustment(sessionId, adjustmentAmount, reason, createdBy, tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     revalidatePath(`/history/${sessionId}`);
@@ -120,7 +154,8 @@ export async function createAdjustmentAction(sessionId: string, adjustmentAmount
 
 export async function updateSettingsAction(fifaNormalPrice: number, fifaExtraTimePrice: number, currency: string) {
   try {
-    const settings = await repository.updateSettings(fifaNormalPrice, fifaExtraTimePrice, currency);
+    const tenantId = await getValidatedTenantId();
+    const settings = await repository.updateSettings(fifaNormalPrice, fifaExtraTimePrice, currency, tenantId);
     revalidatePath('/');
     revalidatePath('/settings');
     return { success: true, data: settings };
@@ -131,7 +166,8 @@ export async function updateSettingsAction(fifaNormalPrice: number, fifaExtraTim
 
 export async function updateConsoleNameAction(consoleId: string, name: string) {
   try {
-    const updated = await repository.updateConsoleName(consoleId, name);
+    const tenantId = await getValidatedTenantId();
+    const updated = await repository.updateConsoleName(consoleId, name, tenantId);
     revalidatePath('/');
     revalidatePath('/settings');
     return { success: true, data: updated };
@@ -142,7 +178,8 @@ export async function updateConsoleNameAction(consoleId: string, name: string) {
 
 export async function clearCompletedHistoryAction() {
   try {
-    const res = await repository.clearCompletedHistory();
+    const tenantId = await getValidatedTenantId();
+    const res = await repository.clearCompletedHistory(tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     revalidatePath('/reports');
@@ -154,7 +191,8 @@ export async function clearCompletedHistoryAction() {
 
 export async function resetReportsAction() {
   try {
-    const res = await repository.resetReports();
+    const tenantId = await getValidatedTenantId();
+    const res = await repository.resetReports(tenantId);
     revalidatePath('/');
     revalidatePath('/history');
     revalidatePath('/reports');

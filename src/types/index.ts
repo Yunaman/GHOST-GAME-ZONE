@@ -1,4 +1,4 @@
-export type Role = 'OWNER' | 'MANAGER' | 'STAFF';
+export type Role = 'OWNER' | 'MANAGER' | 'STAFF' | 'CUSTOMER';
 
 export type ConsoleStatus = 'AVAILABLE' | 'PLAYING' | 'FINISHED';
 
@@ -8,12 +8,27 @@ export type BillingType = 'MATCH_BASED' | 'TIME_BASED';
 
 export type SessionStatus = 'ACTIVE' | 'FINISHED' | 'CANCELLED';
 
-export type PaymentStatus = 'UNPAID' | 'PAID';
+export type PaymentStatus = 'UNPAID' | 'PAID' | 'PENDING';
 
 export type PaymentMethod = 'CASH' | 'TELEBIRR' | 'CBE';
 
+export type AccountStatus = 'ACTIVE' | 'SUSPENDED';
+
+export interface Tenant {
+  id: string;
+  name: string;
+  owner_name: string;
+  username: string;
+  license_price: number;
+  payment_status: 'PAID' | 'PENDING';
+  account_status: AccountStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   id: string;
+  tenant_id?: string;
   username: string;
   display_name: string;
   role: Role;
@@ -23,6 +38,7 @@ export interface User {
 
 export interface Console {
   id: string;
+  tenant_id?: string;
   name: string;
   status: ConsoleStatus;
   display_order: number;
@@ -32,6 +48,7 @@ export interface Console {
 
 export interface Settings {
   id: string;
+  tenant_id?: string;
   fifa_normal_price: number;
   fifa_extra_time_price: number;
   currency: string;
@@ -42,6 +59,7 @@ export interface Settings {
 
 export interface Match {
   id: string;
+  tenant_id?: string;
   session_id: string;
   match_number: number;
   base_price: number;
@@ -54,6 +72,7 @@ export interface Match {
 
 export interface Payment {
   id: string;
+  tenant_id?: string;
   session_id: string;
   method: PaymentMethod;
   amount: number;
@@ -63,6 +82,7 @@ export interface Payment {
 
 export interface Adjustment {
   id: string;
+  tenant_id?: string;
   session_id: string;
   original_amount: number;
   adjustment_amount: number;
@@ -74,6 +94,7 @@ export interface Adjustment {
 
 export interface Session {
   id: string;
+  tenant_id?: string;
   console_id: string;
   game_type: GameType;
   billing_type: BillingType;
