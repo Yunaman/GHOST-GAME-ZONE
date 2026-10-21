@@ -1,19 +1,19 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE_NAME, verifyCredentials, generateSessionToken } from '@/lib/auth';
+import { AUTH_COOKIE_NAME, verifyCredentials } from '@/lib/auth';
+import { parseAndVerifySignedToken } from '@/lib/auth-token';
 import { redirect } from 'next/navigation';
 
 export async function loginAction(username: string, password: string) {
   try {
-    const isValid = await verifyCredentials(username, password);
-    if (!isValid) {
-      return { success: false, error: 'Invalid username or password' };
+    const res = await verifyCredentials(username, password);
+    if (!res.success || !res.token) {
+      return { success: false, error: res.error || 'Invalid username or password' };
     }
 
-    const token = generateSessionToken();
     const cookieStore = await cookies();
-    cookieStore.set(AUTH_COOKIE_NAME, token, {
+    cookieStore.set(AUTH_COOKIE_NAME, res.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -21,7 +21,10 @@ export async function loginAction(username: string, password: string) {
       path: '/',
     });
 
-    return { success: true };
+    const payload = parseAndVerifySignedToken(res.token);
+    const isOwner = payload?.role === 'OWNER';
+
+    return { success: true, redirectUrl: isOwner ? '/admin' : '/' };
   } catch (error: any) {
     return { success: false, error: error?.message || 'Login failed' };
   }

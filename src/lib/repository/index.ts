@@ -13,27 +13,60 @@ import {
 import { cryptoRandomUUID } from '@/lib/utils';
 
 export interface Repository {
-  getSettings(): Promise<Settings>;
-  updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings>;
-  getConsoles(): Promise<Console[]>;
-  addConsole(): Promise<Console>;
-  updateConsoleName(id: string, name: string): Promise<Console>;
-  toggleConsoleActive(id: string, isActive: boolean): Promise<Console>;
-  getActiveSessionByConsoleId(consoleId: string): Promise<Session | null>;
-  getSessionById(sessionId: string): Promise<Session | null>;
-  startSession(consoleId: string, createdBy?: string, customSessionId?: string): Promise<Session>;
-  addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }>;
-  toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }>;
-  undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }>;
-  finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session>;
-  createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy?: string): Promise<Adjustment>;
-  getSessionsHistory(limit?: number): Promise<Session[]>;
-  clearCompletedHistory(): Promise<{ deletedCount: number }>;
-  clearTodayHistory(): Promise<{ deletedCount: number }>;
-  resetReports(): Promise<{ deletedCount: number }>;
-  getAnalyticsSummary(): Promise<AnalyticsSummary>;
-  getUsers(): Promise<User[]>;
+  getSettings(tenantId?: string): Promise<Settings>;
+  updateSettings(
+    fifa_normal_price: number,
+    fifa_extra_time_price: number,
+    currency: string,
+    tenantId?: string
+  ): Promise<Settings>;
+  getConsoles(tenantId?: string): Promise<Console[]>;
+  addConsole(tenantId?: string): Promise<Console>;
+  updateConsoleName(id: string, name: string, tenantId?: string): Promise<Console>;
+  toggleConsoleActive(id: string, isActive: boolean, tenantId?: string): Promise<Console>;
+  getActiveSessionByConsoleId(consoleId: string, tenantId?: string): Promise<Session | null>;
+  getSessionById(sessionId: string, tenantId?: string): Promise<Session | null>;
+  startSession(
+    consoleId: string,
+    createdBy?: string,
+    customSessionId?: string,
+    tenantId?: string
+  ): Promise<Session>;
+  addMatch(
+    sessionId: string,
+    idempotencyKey?: string,
+    tenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }>;
+  toggleMatchExtraTime(
+    sessionId: string,
+    matchId: string,
+    tenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }>;
+  undoLastMatch(sessionId: string, tenantId?: string): Promise<{ sessionTotal: number }>;
+  finishSession(
+    sessionId: string,
+    paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE',
+    reference?: string,
+    tenantId?: string
+  ): Promise<Session>;
+  createAdjustment(
+    sessionId: string,
+    adjustmentAmount: number,
+    reason: string,
+    createdBy?: string,
+    tenantId?: string
+  ): Promise<Adjustment>;
+  getSessionsHistory(limit?: number, tenantId?: string): Promise<Session[]>;
+  clearCompletedHistory(tenantId?: string): Promise<{ deletedCount: number }>;
+  clearTodayHistory(tenantId?: string): Promise<{ deletedCount: number }>;
+  resetReports(tenantId?: string): Promise<{ deletedCount: number }>;
+  getAnalyticsSummary(tenantId?: string): Promise<AnalyticsSummary>;
+  getUsers(tenantId?: string): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | null>;
+}
+
+function resolveTenantId(providedTenantId?: string): string {
+  return providedTenantId || 't-original';
 }
 
 function syncFsSessionTotal(sessionId: string): number {
@@ -53,7 +86,6 @@ function syncFsSessionTotal(sessionId: string): number {
   return total;
 }
 
-// Helper to determine next TV number safely
 function getNextTvNumber(consoles: Console[]): number {
   let maxNum = 0;
   for (const c of consoles) {
@@ -66,46 +98,82 @@ function getNextTvNumber(consoles: Console[]): number {
   return maxNum + 1;
 }
 
-// --- Local Pure JS FileSystem Persistence Repository ---
+// --- Local FileSystem Persistence Repository ---
 const fsRepository: Repository = {
-  async getSettings(): Promise<Settings> {
+  async getSettings(providedTenantId?: string): Promise<Settings> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const settingsObj = Array.isArray(db.settings) ? db.settings[0] : db.settings;
-    return settingsObj || { id: 'default', fifa_normal_price: 15.00, fifa_extra_time_price: 5.00, currency: 'ETB', history_cleared_at: undefined, reports_reset_at: undefined, updated_at: new Date().toISOString() };
+    const settingsArr = Array.isArray(db.settings) ? db.settings : [db.settings];
+    const found = settingsArr.find((s) => s.tenant_id === tenantId || s.id === `s-${tenantId}`);
+    return (
+      found || {
+        id: `s-${tenantId}`,
+        tenant_id: tenantId,
+        fifa_normal_price: 15.00,
+        fifa_extra_time_price: 5.00,
+        currency: 'ETB',
+        updated_at: new Date().toISOString(),
+      }
+    );
   },
 
-  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
+  async updateSettings(
+    fifa_normal_price: number,
+    fifa_extra_time_price: number,
+    currency: string,
+    providedTenantId?: string
+  ): Promise<Settings> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const current = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const now = new Date().toISOString();
+    const current = await this.getSettings(tenantId);
+
     const updated: Settings = {
-      id: current?.id || 'default',
+      id: `s-${tenantId}`,
+      tenant_id: tenantId,
       fifa_normal_price,
       fifa_extra_time_price,
       currency,
-      updated_at: new Date().toISOString(),
+      history_cleared_at: current.history_cleared_at,
+      reports_reset_at: current.reports_reset_at,
+      updated_at: now,
     };
-    db.settings = updated;
+
+    if (Array.isArray(db.settings)) {
+      const idx = db.settings.findIndex((s) => s.tenant_id === tenantId || s.id === `s-${tenantId}`);
+      if (idx >= 0) db.settings[idx] = updated;
+      else db.settings.push(updated);
+    } else {
+      db.settings = [updated] as any;
+    }
+
     saveDb(db);
     return updated;
   },
 
-  async getConsoles(): Promise<Console[]> {
+  async getConsoles(providedTenantId?: string): Promise<Console[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    return [...db.consoles].sort((a, b) => a.display_order - b.display_order);
+    return db.consoles
+      .filter((c) => c.tenant_id === tenantId || (!c.tenant_id && tenantId === 't-original'))
+      .sort((a, b) => a.display_order - b.display_order);
   },
 
-  async addConsole(): Promise<Console> {
+  async addConsole(providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const nextNum = getNextTvNumber(db.consoles);
+    const tenantConsoles = await this.getConsoles(tenantId);
+    const nextNum = getNextTvNumber(tenantConsoles);
     const newName = `TV ${nextNum}`;
-    const newId = `c-${nextNum}`;
+    const newId = `c-${tenantId}-${nextNum}`;
     const now = new Date().toISOString();
 
     const newConsole: Console = {
       id: newId,
+      tenant_id: tenantId,
       name: newName,
       status: 'AVAILABLE',
-      display_order: db.consoles.length + 1,
+      display_order: tenantConsoles.length + 1,
       is_active: true,
       created_at: now,
     };
@@ -115,34 +183,51 @@ const fsRepository: Repository = {
     return newConsole;
   },
 
-  async updateConsoleName(id: string, name: string): Promise<Console> {
+  async updateConsoleName(id: string, name: string, providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === id);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find(
+      (c) => c.id === id && (c.tenant_id === tenantId || (!c.tenant_id && tenantId === 't-original'))
+    );
+    if (!consoleObj) throw new Error('Console TV not found for this tenant');
     consoleObj.name = name;
     saveDb(db);
     return consoleObj;
   },
 
-  async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+  async toggleConsoleActive(id: string, isActive: boolean, providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === id);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find(
+      (c) => c.id === id && (c.tenant_id === tenantId || (!c.tenant_id && tenantId === 't-original'))
+    );
+    if (!consoleObj) throw new Error('Console TV not found for this tenant');
     consoleObj.is_active = isActive;
     saveDb(db);
     return consoleObj;
   },
 
-  async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
+  async getActiveSessionByConsoleId(consoleId: string, providedTenantId?: string): Promise<Session | null> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
+    const active = db.sessions.find(
+      (s) =>
+        s.console_id === consoleId &&
+        s.status === 'ACTIVE' &&
+        (s.tenant_id === tenantId || (!s.tenant_id && tenantId === 't-original'))
+    );
     if (!active) return null;
-    return this.getSessionById(active.id);
+    return this.getSessionById(active.id, tenantId);
   },
 
-  async getSessionById(sessionId: string): Promise<Session | null> {
+  async getSessionById(sessionId: string, providedTenantId?: string): Promise<Session | null> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const session = db.sessions.find((s) => s.id === sessionId);
+    const session = db.sessions.find(
+      (s) =>
+        s.id === sessionId &&
+        (s.tenant_id === tenantId || (!s.tenant_id && tenantId === 't-original'))
+    );
     if (!session) return null;
 
     const consoleObj = db.consoles.find((c) => c.id === session.console_id);
@@ -163,12 +248,25 @@ const fsRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
+  async startSession(
+    consoleId: string,
+    createdBy = 'Staff',
+    customSessionId?: string,
+    providedTenantId?: string
+  ): Promise<Session> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const consoleObj = db.consoles.find((c) => c.id === consoleId);
-    if (!consoleObj) throw new Error('Console TV not found');
+    const consoleObj = db.consoles.find(
+      (c) => c.id === consoleId && (c.tenant_id === tenantId || (!c.tenant_id && tenantId === 't-original'))
+    );
+    if (!consoleObj) throw new Error('Console TV not found for this tenant');
 
-    const active = db.sessions.find((s) => s.console_id === consoleId && s.status === 'ACTIVE');
+    const active = db.sessions.find(
+      (s) =>
+        s.console_id === consoleId &&
+        s.status === 'ACTIVE' &&
+        (s.tenant_id === tenantId || (!s.tenant_id && tenantId === 't-original'))
+    );
     if (active) throw new Error('TV already has an active session');
 
     const sessionId = customSessionId || cryptoRandomUUID();
@@ -176,6 +274,7 @@ const fsRepository: Repository = {
 
     const newSession: Session = {
       id: sessionId,
+      tenant_id: tenantId,
       console_id: consoleId,
       game_type: 'FIFA',
       billing_type: 'MATCH_BASED',
@@ -191,12 +290,17 @@ const fsRepository: Repository = {
     consoleObj.status = 'PLAYING';
     saveDb(db);
 
-    const created = await this.getSessionById(sessionId);
+    const created = await this.getSessionById(sessionId, tenantId);
     if (!created) throw new Error('Failed to retrieve created session');
     return created;
   },
 
-  async addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }> {
+  async addMatch(
+    sessionId: string,
+    idempotencyKey?: string,
+    providedTenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
@@ -213,7 +317,7 @@ const fsRepository: Repository = {
       }
     }
 
-    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
+    const settings = await this.getSettings(tenantId);
     const sessionMatches = db.matches.filter((m) => m.session_id === sessionId);
     const nextMatchNum = sessionMatches.length > 0
       ? Math.max(...sessionMatches.map((m) => m.match_number)) + 1
@@ -221,10 +325,11 @@ const fsRepository: Repository = {
 
     const matchId = cryptoRandomUUID();
     const now = new Date().toISOString();
-    const basePrice = settings?.fifa_normal_price ?? 15.00;
+    const basePrice = settings.fifa_normal_price ?? 15.00;
 
     const newMatch: Match = {
       id: matchId,
+      tenant_id: tenantId,
       session_id: sessionId,
       match_number: nextMatchNum,
       base_price: basePrice,
@@ -242,7 +347,12 @@ const fsRepository: Repository = {
     return { match: newMatch, sessionTotal };
   },
 
-  async toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }> {
+  async toggleMatchExtraTime(
+    sessionId: string,
+    matchId: string,
+    providedTenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
@@ -252,8 +362,8 @@ const fsRepository: Repository = {
     const match = db.matches.find((m) => m.id === matchId && m.session_id === sessionId);
     if (!match) throw new Error('Match not found');
 
-    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
-    const extraPrice = settings?.fifa_extra_time_price ?? 5.00;
+    const settings = await this.getSettings(tenantId);
+    const extraPrice = settings.fifa_extra_time_price ?? 5.00;
 
     if (match.extra_time) {
       match.extra_time = false;
@@ -270,7 +380,7 @@ const fsRepository: Repository = {
     return { match, sessionTotal };
   },
 
-  async undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }> {
+  async undoLastMatch(sessionId: string, providedTenantId?: string): Promise<{ sessionTotal: number }> {
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'ACTIVE') {
@@ -293,7 +403,13 @@ const fsRepository: Repository = {
     return { sessionTotal };
   },
 
-  async finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session> {
+  async finishSession(
+    sessionId: string,
+    paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE',
+    reference?: string,
+    providedTenantId?: string
+  ): Promise<Session> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) throw new Error('Session not found');
@@ -305,6 +421,7 @@ const fsRepository: Repository = {
 
     const newPayment: Payment = {
       id: paymentId,
+      tenant_id: tenantId,
       session_id: sessionId,
       method: paymentMethod,
       amount: finalTotal,
@@ -326,12 +443,19 @@ const fsRepository: Repository = {
 
     saveDb(db);
 
-    const finished = await this.getSessionById(sessionId);
+    const finished = await this.getSessionById(sessionId, tenantId);
     if (!finished) throw new Error('Failed to fetch finished session');
     return finished;
   },
 
-  async createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager'): Promise<Adjustment> {
+  async createAdjustment(
+    sessionId: string,
+    adjustmentAmount: number,
+    reason: string,
+    createdBy = 'Manager',
+    providedTenantId?: string
+  ): Promise<Adjustment> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
     const session = db.sessions.find((s) => s.id === sessionId);
     if (!session) throw new Error('Session not found');
@@ -343,6 +467,7 @@ const fsRepository: Repository = {
 
     const newAdjustment: Adjustment = {
       id,
+      tenant_id: tenantId,
       session_id: sessionId,
       original_amount: originalAmount,
       adjustment_amount: adjustmentAmount,
@@ -368,74 +493,92 @@ const fsRepository: Repository = {
     return newAdjustment;
   },
 
-  async getSessionsHistory(limit = 100): Promise<Session[]> {
+  async getSessionsHistory(limit = 100, providedTenantId?: string): Promise<Session[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
     const clearedAt = settings.history_cleared_at ? new Date(settings.history_cleared_at).getTime() : 0;
 
     const sorted = db.sessions
-      .filter((s) => s.status === 'FINISHED')
+      .filter(
+        (s) =>
+          s.status === 'FINISHED' &&
+          (s.tenant_id === tenantId || (!s.tenant_id && tenantId === 't-original'))
+      )
       .filter((s) => new Date(s.finished_at || s.created_at).getTime() > clearedAt)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, limit);
 
     const result: Session[] = [];
     for (const item of sorted) {
-      const sess = await this.getSessionById(item.id);
+      const sess = await this.getSessionById(item.id, tenantId);
       if (sess) result.push(sess);
     }
     return result;
   },
 
-  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
+  async clearCompletedHistory(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const now = new Date().toISOString();
+    const previousHistory = await this.getSessionsHistory(1000, tenantId);
 
-    const previousHistory = await this.getSessionsHistory(1000);
-    const count = previousHistory.length;
+    const settings = await this.getSettings(tenantId);
+    settings.history_cleared_at = now;
+    settings.updated_at = now;
 
-    if (settings) {
-      settings.history_cleared_at = now;
-      settings.updated_at = now;
+    if (Array.isArray(db.settings)) {
+      const idx = db.settings.findIndex((s) => s.tenant_id === tenantId || s.id === `s-${tenantId}`);
+      if (idx >= 0) db.settings[idx] = settings;
+      else db.settings.push(settings);
     } else {
-      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', history_cleared_at: now, updated_at: now };
+      db.settings = [settings] as any;
     }
 
     saveDb(db);
-    return { deletedCount: count };
+    return { deletedCount: previousHistory.length };
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    return this.clearCompletedHistory();
+  async clearTodayHistory(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory(providedTenantId);
   },
 
-  async resetReports(): Promise<{ deletedCount: number }> {
+  async resetReports(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const settings = Array.isArray(db.settings) ? db.settings[0] : db.settings;
     const now = new Date().toISOString();
+    const settings = await this.getSettings(tenantId);
+    settings.reports_reset_at = now;
+    settings.updated_at = now;
 
-    if (settings) {
-      settings.reports_reset_at = now;
-      settings.updated_at = now;
+    if (Array.isArray(db.settings)) {
+      const idx = db.settings.findIndex((s) => s.tenant_id === tenantId || s.id === `s-${tenantId}`);
+      if (idx >= 0) db.settings[idx] = settings;
+      else db.settings.push(settings);
     } else {
-      db.settings = { id: 'default', fifa_normal_price: 15, fifa_extra_time_price: 5, currency: 'ETB', reports_reset_at: now, updated_at: now };
+      db.settings = [settings] as any;
     }
 
     saveDb(db);
     return { deletedCount: 1 };
   },
 
-  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  async getAnalyticsSummary(providedTenantId?: string): Promise<AnalyticsSummary> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
     const resetAt = settings.reports_reset_at ? new Date(settings.reports_reset_at).getTime() : 0;
 
-    const allFinishedSessions = db.sessions.filter((s) => s.status === 'FINISHED');
+    const allFinishedSessions = db.sessions.filter(
+      (s) =>
+        s.status === 'FINISHED' &&
+        (s.tenant_id === tenantId || (!s.tenant_id && tenantId === 't-original'))
+    );
+
     const finishedSessions: Session[] = [];
     for (const item of allFinishedSessions) {
       if (new Date(item.finished_at || item.created_at).getTime() > resetAt) {
-        const full = await this.getSessionById(item.id);
+        const full = await this.getSessionById(item.id, tenantId);
         if (full) finishedSessions.push(full);
       }
     }
@@ -444,13 +587,11 @@ const fsRepository: Repository = {
     const todayStr = now.toISOString().split('T')[0];
 
     const isToday = (dateStr: string) => dateStr.startsWith(todayStr);
-
     const isThisWeek = (dateStr: string) => {
       const d = new Date(dateStr);
       const diff = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
       return diff <= 7;
     };
-
     const isThisMonth = (dateStr: string) => {
       const d = new Date(dateStr);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
@@ -468,7 +609,7 @@ const fsRepository: Repository = {
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
 
-    const dbConsoles = db.consoles || [];
+    const dbConsoles = await this.getConsoles(tenantId);
     for (const c of dbConsoles) {
       revByConsole[c.name] = 0;
     }
@@ -520,9 +661,12 @@ const fsRepository: Repository = {
     };
   },
 
-  async getUsers(): Promise<User[]> {
+  async getUsers(providedTenantId?: string): Promise<User[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const db = loadDb();
-    return db.users;
+    return db.users.filter(
+      (u) => u.tenant_id === tenantId || (!u.tenant_id && tenantId === 't-original')
+    );
   },
 
   async getUserByUsername(username: string): Promise<User | null> {
@@ -532,72 +676,65 @@ const fsRepository: Repository = {
   },
 };
 
-// Helper to check Supabase client instance
 function getSupabaseClient() {
   if (!supabase) {
-    throw new Error('Supabase configuration error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY are missing in production.');
+    throw new Error('Supabase client is not configured.');
   }
   return supabase;
 }
 
-// --- Supabase Implementation ---
+// --- Supabase Repository ---
 const supabaseRepository: Repository = {
-  async getSettings(): Promise<Settings> {
+  async getSettings(providedTenantId?: string): Promise<Settings> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data } = await client.from('settings').select('*').eq('id', 'default').single();
+    const { data } = await client
+      .from('settings')
+      .select('*')
+      .or(`tenant_id.eq.${tenantId},id.eq.s-${tenantId}`)
+      .limit(1);
 
-    let history_cleared_at = data?.history_cleared_at || undefined;
-    let reports_reset_at = data?.reports_reset_at || undefined;
-
-    if (!history_cleared_at) {
-      const { data: adjClear } = await client
-        .from('adjustments')
-        .select('reason')
-        .like('reason', 'SYSTEM_HISTORY_CLEAR:%')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (adjClear && adjClear.length > 0) {
-        history_cleared_at = adjClear[0].reason.replace('SYSTEM_HISTORY_CLEAR:', '');
-      }
-    }
-
-    if (!reports_reset_at) {
-      const { data: adjReset } = await client
-        .from('adjustments')
-        .select('reason')
-        .like('reason', 'SYSTEM_REPORTS_RESET:%')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (adjReset && adjReset.length > 0) {
-        reports_reset_at = adjReset[0].reason.replace('SYSTEM_REPORTS_RESET:', '');
-      }
-    }
+    const settingsData = data && data.length > 0 ? data[0] : null;
 
     return {
-      id: data?.id || 'default',
-      fifa_normal_price: Number(data?.fifa_normal_price || 15.00),
-      fifa_extra_time_price: Number(data?.fifa_extra_time_price || 5.00),
-      currency: data?.currency || 'ETB',
-      history_cleared_at,
-      reports_reset_at,
-      updated_at: data?.updated_at || new Date().toISOString(),
+      id: settingsData?.id || `s-${tenantId}`,
+      tenant_id: tenantId,
+      fifa_normal_price: Number(settingsData?.fifa_normal_price || 15.00),
+      fifa_extra_time_price: Number(settingsData?.fifa_extra_time_price || 5.00),
+      currency: settingsData?.currency || 'ETB',
+      history_cleared_at: settingsData?.history_cleared_at || undefined,
+      reports_reset_at: settingsData?.reports_reset_at || undefined,
+      updated_at: settingsData?.updated_at || new Date().toISOString(),
     };
   },
 
-  async updateSettings(fifa_normal_price: number, fifa_extra_time_price: number, currency: string): Promise<Settings> {
+  async updateSettings(
+    fifa_normal_price: number,
+    fifa_extra_time_price: number,
+    currency: string,
+    providedTenantId?: string
+  ): Promise<Settings> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
+    const now = new Date().toISOString();
+
     const { data, error } = await client
       .from('settings')
-      .update({ fifa_normal_price, fifa_extra_time_price, currency, updated_at: new Date().toISOString() })
-      .eq('id', 'default')
+      .upsert({
+        id: `s-${tenantId}`,
+        tenant_id: tenantId,
+        fifa_normal_price,
+        fifa_extra_time_price,
+        currency,
+        updated_at: now,
+      })
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error || !data) throw new Error(error?.message || 'Failed to update settings');
     return {
       id: data.id,
+      tenant_id: tenantId,
       fifa_normal_price: Number(data.fifa_normal_price),
       fifa_extra_time_price: Number(data.fifa_extra_time_price),
       currency: data.currency,
@@ -605,67 +742,119 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async getConsoles(): Promise<Console[]> {
+  async getConsoles(providedTenantId?: string): Promise<Console[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').select('*').order('display_order', { ascending: true });
+    const { data, error } = await client
+      .from('consoles')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('display_order', { ascending: true });
+
     if (error || !data) return [];
     return data as Console[];
   },
 
-  async addConsole(): Promise<Console> {
+  async addConsole(providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const consoles = await this.getConsoles();
+    const consoles = await this.getConsoles(tenantId);
     const nextNum = getNextTvNumber(consoles);
     const name = `TV ${nextNum}`;
 
-    const { data, error } = await client.from('consoles').insert({
-      name,
-      status: 'AVAILABLE',
-      display_order: consoles.length + 1,
-      is_active: true
-    }).select().single();
+    const { data, error } = await client
+      .from('consoles')
+      .insert({
+        id: `c-${tenantId}-${nextNum}`,
+        tenant_id: tenantId,
+        name,
+        status: 'AVAILABLE',
+        display_order: consoles.length + 1,
+        is_active: true,
+      })
+      .select()
+      .single();
 
     if (error || !data) throw new Error(error?.message || 'Failed to add TV station');
     return data as Console;
   },
 
-  async updateConsoleName(id: string, name: string): Promise<Console> {
+  async updateConsoleName(id: string, name: string, providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').update({ name }).eq('id', id).select().single();
-    if (error) throw new Error(error.message);
+    const { data, error } = await client
+      .from('consoles')
+      .update({ name })
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to update TV name');
     return data as Console;
   },
 
-  async toggleConsoleActive(id: string, isActive: boolean): Promise<Console> {
+  async toggleConsoleActive(id: string, isActive: boolean, providedTenantId?: string): Promise<Console> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data, error } = await client.from('consoles').update({ is_active: isActive }).eq('id', id).select().single();
-    if (error) throw new Error(error.message);
+    const { data, error } = await client
+      .from('consoles')
+      .update({ is_active: isActive })
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to toggle TV status');
     return data as Console;
   },
 
-  async getActiveSessionByConsoleId(consoleId: string): Promise<Session | null> {
+  async getActiveSessionByConsoleId(consoleId: string, providedTenantId?: string): Promise<Session | null> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
     const { data, error } = await client
       .from('sessions')
       .select('id')
       .eq('console_id', consoleId)
+      .eq('tenant_id', tenantId)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(1);
 
     if (error || !data || data.length === 0) return null;
-    return this.getSessionById(data[0].id);
+    return this.getSessionById(data[0].id, tenantId);
   },
 
-  async getSessionById(sessionId: string): Promise<Session | null> {
+  async getSessionById(sessionId: string, providedTenantId?: string): Promise<Session | null> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data: session, error } = await client.from('sessions').select('*').eq('id', sessionId).single();
+    const { data: session, error } = await client
+      .from('sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('tenant_id', tenantId)
+      .single();
+
     if (error || !session) return null;
 
-    const { data: consoleObj } = await client.from('consoles').select('name').eq('id', session.console_id).single();
-    const { data: matches } = await client.from('matches').select('*').eq('session_id', sessionId).order('match_number', { ascending: true });
+    const { data: consoleObj } = await client
+      .from('consoles')
+      .select('name')
+      .eq('id', session.console_id)
+      .single();
+
+    const { data: matches } = await client
+      .from('matches')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('match_number', { ascending: true });
+
     const { data: payments } = await client.from('payments').select('*').eq('session_id', sessionId);
-    const { data: adjustments } = await client.from('adjustments').select('*').eq('session_id', sessionId).order('created_at', { ascending: true });
+    const { data: adjustments } = await client
+      .from('adjustments')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
 
     return {
       ...session,
@@ -687,13 +876,21 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async startSession(consoleId: string, createdBy = 'Staff', customSessionId?: string): Promise<Session> {
+  async startSession(
+    consoleId: string,
+    createdBy = 'Staff',
+    customSessionId?: string,
+    providedTenantId?: string
+  ): Promise<Session> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
+    // Check existing active session scoped by tenant_id and console_id
     const { data: existing } = await client
       .from('sessions')
       .select('id')
       .eq('console_id', consoleId)
+      .eq('tenant_id', tenantId)
       .eq('status', 'ACTIVE')
       .order('created_at', { ascending: false })
       .limit(1);
@@ -703,6 +900,7 @@ const supabaseRepository: Repository = {
     }
 
     const insertPayload: any = {
+      tenant_id: tenantId,
       console_id: consoleId,
       game_type: 'FIFA',
       billing_type: 'MATCH_BASED',
@@ -723,17 +921,26 @@ const supabaseRepository: Repository = {
 
     if (error || !session) throw new Error(error?.message || 'Failed to start session');
 
-    await client.from('consoles').update({ status: 'PLAYING' }).eq('id', consoleId);
+    await client
+      .from('consoles')
+      .update({ status: 'PLAYING' })
+      .eq('id', consoleId)
+      .eq('tenant_id', tenantId);
 
-    const fullSession = await this.getSessionById(session.id);
+    const fullSession = await this.getSessionById(session.id, tenantId);
     if (!fullSession) throw new Error('Session retrieval failed');
     return fullSession;
   },
 
-  async addMatch(sessionId: string, idempotencyKey?: string): Promise<{ match: Match; sessionTotal: number }> {
+  async addMatch(
+    sessionId: string,
+    idempotencyKey?: string,
+    providedTenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, tenantId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
     if (idempotencyKey) {
@@ -748,13 +955,14 @@ const supabaseRepository: Repository = {
       }
     }
 
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
     const nextMatchNum = (session.matches?.length || 0) + 1;
     const basePrice = settings.fifa_normal_price;
 
     const { data: createdMatch, error } = await client
       .from('matches')
       .insert({
+        tenant_id: tenantId,
         session_id: sessionId,
         match_number: nextMatchNum,
         base_price: basePrice,
@@ -783,16 +991,21 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async toggleMatchExtraTime(sessionId: string, matchId: string): Promise<{ match: Match; sessionTotal: number }> {
+  async toggleMatchExtraTime(
+    sessionId: string,
+    matchId: string,
+    providedTenantId?: string
+  ): Promise<{ match: Match; sessionTotal: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, tenantId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
     const match = session.matches?.find((m) => m.id === matchId);
     if (!match) throw new Error('Match not found');
 
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
     const isAdding = !match.extra_time;
     const extraPrice = isAdding ? settings.fifa_extra_time_price : 0.00;
     const totalPrice = match.base_price + extraPrice;
@@ -810,7 +1023,7 @@ const supabaseRepository: Repository = {
 
     if (error || !updated) throw new Error(error?.message || 'Failed to update match');
 
-    const updatedSession = await this.getSessionById(sessionId);
+    const updatedSession = await this.getSessionById(sessionId, tenantId);
     const matchesSum = updatedSession?.matches?.reduce((acc, m) => acc + Number(m.total_price), 0) || 0;
     const adjustmentsSum = updatedSession?.adjustments?.reduce((acc, a) => acc + Number(a.adjustment_amount), 0) || 0;
     const newTotal = matchesSum + adjustmentsSum;
@@ -828,10 +1041,11 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async undoLastMatch(sessionId: string): Promise<{ sessionTotal: number }> {
+  async undoLastMatch(sessionId: string, providedTenantId?: string): Promise<{ sessionTotal: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, tenantId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is not active');
 
     if (!session.matches || session.matches.length === 0) {
@@ -841,23 +1055,30 @@ const supabaseRepository: Repository = {
     const lastMatch = session.matches[session.matches.length - 1];
     await client.from('matches').delete().eq('id', lastMatch.id);
 
-    const updatedSession = await this.getSessionById(sessionId);
+    const updatedSession = await this.getSessionById(sessionId, tenantId);
     const matchesSum = updatedSession?.matches?.reduce((acc, m) => acc + Number(m.total_price), 0) || 0;
     await client.from('sessions').update({ total_amount: matchesSum }).eq('id', sessionId);
 
     return { sessionTotal: matchesSum };
   },
 
-  async finishSession(sessionId: string, paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE', reference?: string): Promise<Session> {
+  async finishSession(
+    sessionId: string,
+    paymentMethod: 'CASH' | 'TELEBIRR' | 'CBE',
+    reference?: string,
+    providedTenantId?: string
+  ): Promise<Session> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, tenantId);
     if (!session || session.status !== 'ACTIVE') throw new Error('Session is already finished');
 
     const finalTotal = session.total_amount;
     const now = new Date().toISOString();
 
     await client.from('payments').insert({
+      tenant_id: tenantId,
       session_id: sessionId,
       method: paymentMethod,
       amount: finalTotal,
@@ -873,17 +1094,28 @@ const supabaseRepository: Repository = {
       })
       .eq('id', sessionId);
 
-    await client.from('consoles').update({ status: 'AVAILABLE' }).eq('id', session.console_id);
+    await client
+      .from('consoles')
+      .update({ status: 'AVAILABLE' })
+      .eq('id', session.console_id)
+      .eq('tenant_id', tenantId);
 
-    const finished = await this.getSessionById(sessionId);
+    const finished = await this.getSessionById(sessionId, tenantId);
     if (!finished) throw new Error('Failed to retrieve finished session');
     return finished;
   },
 
-  async createAdjustment(sessionId: string, adjustmentAmount: number, reason: string, createdBy = 'Manager'): Promise<Adjustment> {
+  async createAdjustment(
+    sessionId: string,
+    adjustmentAmount: number,
+    reason: string,
+    createdBy = 'Manager',
+    providedTenantId?: string
+  ): Promise<Adjustment> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
 
-    const session = await this.getSessionById(sessionId);
+    const session = await this.getSessionById(sessionId, tenantId);
     if (!session) throw new Error('Session not found');
 
     const originalAmount = session.total_amount;
@@ -892,6 +1124,7 @@ const supabaseRepository: Repository = {
     const { data: adj, error } = await client
       .from('adjustments')
       .insert({
+        tenant_id: tenantId,
         session_id: sessionId,
         original_amount: originalAmount,
         adjustment_amount: adjustmentAmount,
@@ -918,13 +1151,15 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async getSessionsHistory(limit = 100): Promise<Session[]> {
+  async getSessionsHistory(limit = 100, providedTenantId?: string): Promise<Session[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
     const query = client
       .from('sessions')
       .select('id, created_at, finished_at')
       .eq('status', 'FINISHED')
+      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(limit * 2);
 
@@ -935,88 +1170,59 @@ const supabaseRepository: Repository = {
       ? new Date(settings.history_cleared_at).getTime()
       : 0;
 
-    const filtered = data.filter((item) => {
-      const sessTime = new Date(item.finished_at || item.created_at).getTime();
-      return sessTime > clearedAtTime;
-    }).slice(0, limit);
+    const filtered = data
+      .filter((item) => new Date(item.finished_at || item.created_at).getTime() > clearedAtTime)
+      .slice(0, limit);
 
     const result: Session[] = [];
     for (const item of filtered) {
-      const sess = await this.getSessionById(item.id);
+      const sess = await this.getSessionById(item.id, tenantId);
       if (sess) result.push(sess);
     }
     return result;
   },
 
-  async clearCompletedHistory(): Promise<{ deletedCount: number }> {
+  async clearCompletedHistory(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
     const now = new Date().toISOString();
-    const previousHistory = await this.getSessionsHistory(1000);
+    const previousHistory = await this.getSessionsHistory(1000, tenantId);
 
-    // 1. Attempt to update settings table if column history_cleared_at exists
     await client
       .from('settings')
       .update({ history_cleared_at: now, updated_at: now })
-      .eq('id', 'default');
-
-    // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').limit(1);
-    const sessionId = session && session.length > 0 ? session[0].id : null;
-
-    if (sessionId) {
-      await client.from('adjustments').insert({
-        session_id: sessionId,
-        original_amount: 0,
-        adjustment_amount: 0,
-        resulting_amount: 0,
-        reason: 'SYSTEM_HISTORY_CLEAR:' + now,
-        created_by: 'System',
-      });
-    }
+      .eq('tenant_id', tenantId);
 
     return { deletedCount: previousHistory.length };
   },
 
-  async clearTodayHistory(): Promise<{ deletedCount: number }> {
-    return this.clearCompletedHistory();
+  async clearTodayHistory(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    return this.clearCompletedHistory(providedTenantId);
   },
 
-  async resetReports(): Promise<{ deletedCount: number }> {
+  async resetReports(providedTenantId?: string): Promise<{ deletedCount: number }> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
     const now = new Date().toISOString();
 
-    // 1. Attempt to update settings table if column reports_reset_at exists
     await client
       .from('settings')
       .update({ reports_reset_at: now, updated_at: now })
-      .eq('id', 'default');
-
-    // 2. Insert audit marker in adjustments table as reliable fallback
-    const { data: session } = await client.from('sessions').select('id').limit(1);
-    const sessionId = session && session.length > 0 ? session[0].id : null;
-
-    if (sessionId) {
-      await client.from('adjustments').insert({
-        session_id: sessionId,
-        original_amount: 0,
-        adjustment_amount: 0,
-        resulting_amount: 0,
-        reason: 'SYSTEM_REPORTS_RESET:' + now,
-        created_by: 'System',
-      });
-    }
+      .eq('tenant_id', tenantId);
 
     return { deletedCount: 1 };
   },
 
-  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  async getAnalyticsSummary(providedTenantId?: string): Promise<AnalyticsSummary> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const settings = await this.getSettings();
+    const settings = await this.getSettings(tenantId);
 
     const { data } = await client
       .from('sessions')
       .select('id, created_at, finished_at')
-      .eq('status', 'FINISHED');
+      .eq('status', 'FINISHED')
+      .eq('tenant_id', tenantId);
 
     const resetAtTime = settings.reports_reset_at
       ? new Date(settings.reports_reset_at).getTime()
@@ -1030,7 +1236,7 @@ const supabaseRepository: Repository = {
       });
 
       for (const item of filtered) {
-        const sess = await this.getSessionById(item.id);
+        const sess = await this.getSessionById(item.id, tenantId);
         if (sess) finishedSessions.push(sess);
       }
     }
@@ -1061,7 +1267,7 @@ const supabaseRepository: Repository = {
     const revByMethod = { CASH: 0, TELEBIRR: 0, CBE: 0 };
     const revByConsole: Record<string, number> = {};
 
-    const dbConsoles = await this.getConsoles();
+    const dbConsoles = await this.getConsoles(tenantId);
     for (const c of dbConsoles) {
       revByConsole[c.name] = 0;
     }
@@ -1113,9 +1319,13 @@ const supabaseRepository: Repository = {
     };
   },
 
-  async getUsers(): Promise<User[]> {
+  async getUsers(providedTenantId?: string): Promise<User[]> {
+    const tenantId = resolveTenantId(providedTenantId);
     const client = getSupabaseClient();
-    const { data } = await client.from('users').select('id, username, display_name, role, created_at');
+    const { data } = await client
+      .from('users')
+      .select('id, tenant_id, username, display_name, role, created_at')
+      .eq('tenant_id', tenantId);
     return (data || []) as User[];
   },
 
@@ -1128,7 +1338,6 @@ const supabaseRepository: Repository = {
 
 const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 
-// In production or when explicitly configured, use Supabase repository. In dev/test without Supabase, use local filesystem repository.
 export const repository: Repository = (isProduction || isSupabaseConfigured)
   ? supabaseRepository
   : fsRepository;

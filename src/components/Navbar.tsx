@@ -6,7 +6,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Gamepad2, History, BarChart3, Settings, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { initSyncEngine } from '@/lib/sync/sync-engine';
 
-export function Navbar() {
+interface NavbarProps {
+  displayName?: string;
+  isOwner?: boolean;
+}
+
+export function Navbar({ displayName = 'Game Zone', isOwner = false }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -43,7 +48,8 @@ export function Navbar() {
     router.prefetch('/history');
     router.prefetch('/reports');
     router.prefetch('/settings');
-  }, [router]);
+    if (isOwner) router.prefetch('/admin');
+  }, [router, isOwner]);
 
   // Reset pending state on pathname change
   useEffect(() => {
@@ -70,7 +76,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 bg-[#06070a]/90 backdrop-blur-md border-b border-purple-900/40 px-3 sm:px-4 py-2.5 pointer-events-auto">
       <div className="max-w-5xl mx-auto flex items-center justify-between gap-2">
-        {/* Brand */}
+        {/* Brand & Welcome Message */}
         <Link
           href="/"
           onClick={handleNavClick('/')}
@@ -81,11 +87,11 @@ export function Navbar() {
           </div>
           <div>
             <h1 className="font-gaming font-black tracking-wider text-sm sm:text-base text-white leading-none flex items-center gap-1.5">
-              <span>GHOST GAME ZONE</span>
+              <span>GHOST GAME CENTER</span>
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="font-handwriting text-purple-300 text-xs sm:text-sm leading-none">
-                FIFA gaming center
+                Welcome back, {displayName} 👋
               </span>
 
               {/* Online / Offline Sync Indicator */}

@@ -128,6 +128,13 @@ export async function idbClear(storeName: string): Promise<void> {
   }
 }
 
+export async function clearAllLocalCachesForAccountSwitch(): Promise<void> {
+  const stores = ['consoles', 'sessions', 'matches', 'payments', 'adjustments', 'settings', 'users', 'sync_queue'];
+  for (const store of stores) {
+    await idbClear(store);
+  }
+}
+
 // Sync Queue specific functions
 export async function addToSyncQueue(item: Omit<SyncQueueItem, 'id'>): Promise<void> {
   await idbPut('sync_queue', item);
@@ -149,9 +156,9 @@ export async function initIDBDefaults(): Promise<void> {
   if (consoles.length === 0) {
     const now = new Date().toISOString();
     const defaultConsoles: Console[] = [
-      { id: 'c-1', name: 'TV 1', status: 'AVAILABLE', display_order: 1, is_active: true, created_at: now },
-      { id: 'c-2', name: 'TV 2', status: 'AVAILABLE', display_order: 2, is_active: true, created_at: now },
-      { id: 'c-3', name: 'TV 3', status: 'AVAILABLE', display_order: 3, is_active: true, created_at: now },
+      { id: 'c-1', tenant_id: 't-original', name: 'TV 1', status: 'AVAILABLE', display_order: 1, is_active: true, created_at: now },
+      { id: 'c-2', tenant_id: 't-original', name: 'TV 2', status: 'AVAILABLE', display_order: 2, is_active: true, created_at: now },
+      { id: 'c-3', tenant_id: 't-original', name: 'TV 3', status: 'AVAILABLE', display_order: 3, is_active: true, created_at: now },
     ];
     for (const c of defaultConsoles) {
       await idbPut('consoles', c);
@@ -162,6 +169,7 @@ export async function initIDBDefaults(): Promise<void> {
   if (!settings) {
     const defaultSettings: Settings = {
       id: 'default',
+      tenant_id: 't-original',
       fifa_normal_price: 15.00,
       fifa_extra_time_price: 5.00,
       currency: 'ETB',

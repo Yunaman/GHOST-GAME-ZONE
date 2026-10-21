@@ -7,7 +7,7 @@ import { Lock, User, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'luci
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('ghostvon');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +28,11 @@ export default function LoginPage() {
     try {
       const res = await loginAction(username, password);
       if (res.success) {
-        router.push('/');
+        if (res.redirectUrl) {
+          router.push(res.redirectUrl);
+        } else {
+          router.push('/');
+        }
         router.refresh();
       } else {
         setErrorMsg(res.error || 'Invalid credentials');
@@ -49,7 +53,7 @@ export default function LoginPage() {
             👻
           </div>
           <h1 className="font-gaming font-black text-2xl text-white tracking-wider flex items-center justify-center gap-2">
-            <span>GHOST GAME ZONE</span>
+            <span>GHOST GAME CENTER</span>
           </h1>
           <p className="font-handwriting text-purple-300 text-lg mt-1">
             FIFA gaming center management system
@@ -126,7 +130,7 @@ export default function LoginPage() {
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin text-black" />
             ) : (
-              <span className="text-black tracking-wide font-black">LOGIN TO GAMING FLOOR 👻</span>
+              <span className="text-black tracking-wide font-black">LOGIN TO GAMING CENTER 👻</span>
             )}
           </button>
         </form>

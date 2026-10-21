@@ -32,7 +32,7 @@
       "status": "AVAILABLE",
       "display_order": 1,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.839Z"
+      "created_at": "2026-10-21T09:56:42.470Z"
     },
     {
       "id": "c-2",
@@ -40,880 +40,138 @@
       "status": "PLAYING",
       "display_order": 2,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.839Z"
+      "created_at": "2026-10-21T09:56:42.470Z"
     },
     {
       "id": "c-3",
       "name": "TV 3",
-      "status": "PLAYING",
+      "status": "AVAILABLE",
       "display_order": 3,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.839Z"
+      "created_at": "2026-10-21T09:56:42.470Z"
     },
     {
-      "id": "c-4",
+      "id": "c-t-original-4",
+      "tenant_id": "t-original",
       "name": "TV 4",
       "status": "AVAILABLE",
       "display_order": 4,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.861Z"
+      "created_at": "2026-10-21T09:56:42.479Z"
     },
     {
-      "id": "c-5",
+      "id": "c-t-original-5",
+      "tenant_id": "t-original",
       "name": "TV 5",
       "status": "AVAILABLE",
       "display_order": 5,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.862Z"
+      "created_at": "2026-10-21T09:56:42.480Z"
     },
     {
-      "id": "c-6",
+      "id": "c-t-original-6",
+      "tenant_id": "t-original",
       "name": "TV 6",
       "status": "AVAILABLE",
       "display_order": 6,
       "is_active": true,
-      "created_at": "2026-10-13T14:03:15.862Z"
+      "created_at": "2026-10-21T09:56:42.480Z"
     }
   ],
-  "settings": {
-    "id": "default",
-    "fifa_normal_price": 15,
-    "fifa_extra_time_price": 5,
-    "currency": "ETB",
-    "updated_at": "2026-10-14T08:54:06.349Z",
-    "reports_reset_at": "2026-10-14T07:15:30.851Z",
-    "history_cleared_at": "2026-10-14T08:54:06.349Z"
-  },
+  "settings": [
+    {
+      "id": "s-t-original",
+      "tenant_id": "t-original",
+      "fifa_normal_price": 15,
+      "fifa_extra_time_price": 5,
+      "currency": "ETB",
+      "updated_at": "2026-10-21T09:56:42.483Z",
+      "history_cleared_at": "2026-10-21T09:56:42.483Z"
+    }
+  ],
   "sessions": [
     {
-      "id": "41a37f9e-c36d-43ba-a44b-214b31d8edf8",
+      "id": "9039b50f-e606-4fd5-89b2-9efda4b75dbb",
+      "tenant_id": "t-original",
       "console_id": "c-1",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
       "status": "FINISHED",
-      "started_at": "2026-10-13T14:03:15.841Z",
+      "started_at": "2026-10-21T09:56:42.471Z",
       "total_amount": 50,
       "payment_status": "PAID",
       "created_by": "Tester",
-      "created_at": "2026-10-13T14:03:15.841Z",
-      "finished_at": "2026-10-13T14:03:15.859Z"
+      "created_at": "2026-10-21T09:56:42.471Z",
+      "finished_at": "2026-10-21T09:56:42.478Z"
     },
     {
-      "id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
+      "id": "47df6977-8f57-42d4-b3ed-49ed008d02a2",
+      "tenant_id": "t-original",
       "console_id": "c-2",
       "game_type": "FIFA",
       "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T14:03:15.864Z",
-      "total_amount": 75,
-      "payment_status": "PAID",
+      "status": "ACTIVE",
+      "started_at": "2026-10-21T09:56:42.482Z",
+      "total_amount": 15,
+      "payment_status": "UNPAID",
       "created_by": "ActivePlayer",
-      "created_at": "2026-10-13T14:03:15.864Z",
-      "finished_at": "2026-10-13T19:06:42.031Z"
-    },
-    {
-      "id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "console_id": "c-1",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T19:05:39.957Z",
-      "total_amount": 75,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-13T19:05:39.957Z",
-      "finished_at": "2026-10-13T19:06:38.580Z"
-    },
-    {
-      "id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "console_id": "c-3",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T19:05:53.879Z",
-      "total_amount": 75,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-13T19:05:53.879Z",
-      "finished_at": "2026-10-13T19:06:44.874Z"
-    },
-    {
-      "id": "47841c22-3474-4db1-a89c-d34b98d2bc23",
-      "console_id": "c-1",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T19:06:49.614Z",
-      "total_amount": 30,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-13T19:06:49.614Z",
-      "finished_at": "2026-10-13T19:06:56.352Z"
-    },
-    {
-      "id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "console_id": "c-1",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T19:11:59.054Z",
-      "total_amount": 165,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-13T19:11:59.054Z",
-      "finished_at": "2026-10-13T19:12:10.237Z"
-    },
-    {
-      "id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "console_id": "c-1",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-13T19:12:18.374Z",
-      "total_amount": 85,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-13T19:12:18.374Z",
-      "finished_at": "2026-10-14T07:17:21.454Z"
-    },
-    {
-      "id": "a4e6cd17-d746-4e20-a7c1-794bdb64160c",
-      "console_id": "c-2",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-14T07:00:10.153Z",
-      "total_amount": 50,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-14T07:00:10.153Z",
-      "finished_at": "2026-10-14T07:01:04.124Z"
-    },
-    {
-      "id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "console_id": "c-3",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-14T07:00:13.534Z",
-      "total_amount": 120,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-14T07:00:13.534Z",
-      "finished_at": "2026-10-14T07:13:37.953Z"
-    },
-    {
-      "id": "75594cd4-daff-4204-9ef1-75e6baa44476",
-      "console_id": "c-3",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "ACTIVE",
-      "started_at": "2026-10-14T07:13:40.916Z",
-      "total_amount": 50,
-      "payment_status": "UNPAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-14T07:13:40.916Z"
-    },
-    {
-      "id": "c6b18295-12c3-443e-af27-f4568c3c144a",
-      "console_id": "c-1",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "FINISHED",
-      "started_at": "2026-10-14T07:19:49.914Z",
-      "total_amount": 50,
-      "payment_status": "PAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-14T07:19:49.914Z",
-      "finished_at": "2026-10-14T08:50:53.186Z"
-    },
-    {
-      "id": "e3ea62a3-827d-4a21-b1af-ec4c12aff6ea",
-      "console_id": "c-2",
-      "game_type": "FIFA",
-      "billing_type": "MATCH_BASED",
-      "status": "ACTIVE",
-      "started_at": "2026-10-14T08:50:34.888Z",
-      "total_amount": 30,
-      "payment_status": "UNPAID",
-      "created_by": "Staff",
-      "created_at": "2026-10-14T08:50:34.888Z"
+      "created_at": "2026-10-21T09:56:42.482Z"
     }
   ],
   "matches": [
     {
-      "id": "8e9c0919-687b-4bc3-b6f1-224979b47e0d",
-      "session_id": "41a37f9e-c36d-43ba-a44b-214b31d8edf8",
+      "id": "dc0a84ab-e525-46fc-8fe3-0744ce3933de",
+      "tenant_id": "t-original",
+      "session_id": "9039b50f-e606-4fd5-89b2-9efda4b75dbb",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T14:03:15.843Z"
+      "created_at": "2026-10-21T09:56:42.474Z"
     },
     {
-      "id": "cacdafa7-16af-4e70-968e-edf2128e9de2",
-      "session_id": "41a37f9e-c36d-43ba-a44b-214b31d8edf8",
+      "id": "125482d4-47b5-4571-b1c9-e3f8a88bc496",
+      "tenant_id": "t-original",
+      "session_id": "9039b50f-e606-4fd5-89b2-9efda4b75dbb",
       "match_number": 2,
       "base_price": 15,
       "extra_time": true,
       "extra_time_price": 5,
       "total_price": 20,
-      "created_at": "2026-10-13T14:03:15.848Z"
+      "created_at": "2026-10-21T09:56:42.475Z"
     },
     {
-      "id": "6269a9f3-8061-4508-b610-ca57ec9e0928",
-      "session_id": "41a37f9e-c36d-43ba-a44b-214b31d8edf8",
+      "id": "e691acef-b287-4fb6-a700-ddb38edb387b",
+      "tenant_id": "t-original",
+      "session_id": "9039b50f-e606-4fd5-89b2-9efda4b75dbb",
       "match_number": 3,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "created_at": "2026-10-13T14:03:15.850Z"
+      "created_at": "2026-10-21T09:56:42.476Z"
     },
     {
-      "id": "f6ff70c6-1bd6-4ebc-9ef7-9bc3cbef55b9",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
+      "id": "807b9615-f0ae-42f5-8b85-e3fd63973261",
+      "tenant_id": "t-original",
+      "session_id": "47df6977-8f57-42d4-b3ed-49ed008d02a2",
       "match_number": 1,
       "base_price": 15,
       "extra_time": false,
       "extra_time_price": 0,
       "total_price": 15,
-      "client_idempotency_key": "175cb378-6d05-42bb-89ba-3de5e96c6770",
-      "created_at": "2026-10-13T19:05:40.981Z"
-    },
-    {
-      "id": "1dd69c09-d273-4d30-b8fb-e26258e935d3",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "ae4ec0b4-1102-42ea-a6a7-397fabf4e334",
-      "created_at": "2026-10-13T19:05:44.221Z"
-    },
-    {
-      "id": "e2a9e333-b566-4993-b6d3-ac636b3ed2bc",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "f2950f48-f829-435c-a331-c98e82b853cd",
-      "created_at": "2026-10-13T19:05:46.372Z"
-    },
-    {
-      "id": "d8acb0f7-9fdd-4afd-bc72-ac4210bc31b2",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "c8575808-21c6-4b8b-ba52-01a415737a34",
-      "created_at": "2026-10-13T19:05:47.258Z"
-    },
-    {
-      "id": "b58eb211-aa5e-474f-bd9a-b909f4d17a6f",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "2a2469e8-42e2-4dab-8385-1e91ce9db766",
-      "created_at": "2026-10-13T19:05:48.079Z"
-    },
-    {
-      "id": "3b12b67b-7f5c-407d-ad1c-3af27e9cd01d",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "6869ff24-6e26-4f53-a05b-92153b5d0970",
-      "created_at": "2026-10-13T19:05:51.022Z"
-    },
-    {
-      "id": "ddd67b8f-726f-43f6-a119-c208d775547f",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "769a3645-139c-494b-83ca-b6639e657df2",
-      "created_at": "2026-10-13T19:05:51.720Z"
-    },
-    {
-      "id": "04715f29-8292-4bcb-ac43-e6645c458906",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "716eb760-8af1-4dd4-a929-efc6cc0495ed",
-      "created_at": "2026-10-13T19:05:52.329Z"
-    },
-    {
-      "id": "5aa46396-4bf2-4fd1-8304-a404c88e0c88",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "6423b460-206d-4b29-93e9-dea213b43ae4",
-      "created_at": "2026-10-13T19:05:54.452Z"
-    },
-    {
-      "id": "86971a7a-7420-4c5d-a42d-d47376998a33",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "5e8db47f-becf-4b76-af2c-e6a7a72bb9ed",
-      "created_at": "2026-10-13T19:05:55.264Z"
-    },
-    {
-      "id": "4f1286c4-a4e0-42cc-becc-2828f32e0127",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "68d23b6e-8a55-48ff-87dd-89c8284863d1",
-      "created_at": "2026-10-13T19:05:55.794Z"
-    },
-    {
-      "id": "1a394d6e-801e-4870-a49f-29701aa2345d",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "03b1ea43-d219-4c21-9483-74b7851f850d",
-      "created_at": "2026-10-13T19:05:56.258Z"
-    },
-    {
-      "id": "239bbb85-6d17-4a82-82e8-965df12e9594",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "78280d69-bd90-4436-b9bc-f4062161b414",
-      "created_at": "2026-10-13T19:06:14.994Z"
-    },
-    {
-      "id": "bf8e4e15-4d0e-4c83-bec7-74d53db6df0f",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "aedced07-98a8-492f-842d-118f8b6e9679",
-      "created_at": "2026-10-13T19:06:17.283Z"
-    },
-    {
-      "id": "2ec70398-c598-4b8f-9282-040bd0b10a0a",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "b5183a29-8c54-4e78-beb7-048a250710ec",
-      "created_at": "2026-10-13T19:06:18.112Z"
-    },
-    {
-      "id": "97eba821-633f-4960-b3e5-79fb746206df",
-      "session_id": "47841c22-3474-4db1-a89c-d34b98d2bc23",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "17540301-36b2-4431-ab34-198e2c225e7a",
-      "created_at": "2026-10-13T19:06:50.711Z"
-    },
-    {
-      "id": "ecea5c96-986e-4de9-b0b6-18d6e5df2d9d",
-      "session_id": "47841c22-3474-4db1-a89c-d34b98d2bc23",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "471ce782-8c09-47fd-8ceb-fe1dd7b88c76",
-      "created_at": "2026-10-13T19:06:51.370Z"
-    },
-    {
-      "id": "a179d017-c774-4654-adcb-8a51ef38bdca",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "07db0652-a874-47b3-88d0-5684f4b2d93d",
-      "created_at": "2026-10-13T19:11:59.684Z"
-    },
-    {
-      "id": "148bbb3f-5393-4064-a61d-eb1307806dc3",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "39fed76e-1370-43c0-9ab0-fabd341680bd",
-      "created_at": "2026-10-13T19:12:00.812Z"
-    },
-    {
-      "id": "419d763f-cf3a-4e55-a57a-5531cffc9c9d",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "f14aad2e-8a20-4572-b1d2-2828f76b88e3",
-      "created_at": "2026-10-13T19:12:01.486Z"
-    },
-    {
-      "id": "a56be2fa-fde4-4312-bf29-a4e0f0625204",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "e1aca4c3-7871-4d68-9633-4e5c32f4a041",
-      "created_at": "2026-10-13T19:12:01.792Z"
-    },
-    {
-      "id": "cfa7fa6c-accc-4e7f-a6bb-d2877f3107d9",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "69e2a6fa-928e-4160-9c7f-c89326bbd221",
-      "created_at": "2026-10-13T19:12:02.133Z"
-    },
-    {
-      "id": "0d130828-0070-4ab6-8e2f-4d8feb071c1d",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 6,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "79b626b8-e3c5-45ed-befb-cb32730755ae",
-      "created_at": "2026-10-13T19:12:02.394Z"
-    },
-    {
-      "id": "f1ae8e36-20a1-4d5a-9f1f-28a890f85ed3",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 7,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "93d6799a-19a2-4abe-a83b-d5c036df3dd5",
-      "created_at": "2026-10-13T19:12:02.711Z"
-    },
-    {
-      "id": "ee8df49f-44ed-4d6b-a9ed-aaa95569c170",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 8,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "bfb79472-19d1-4a5c-86e6-d9732189ec6f",
-      "created_at": "2026-10-13T19:12:03.036Z"
-    },
-    {
-      "id": "506f4ce5-9881-44be-b566-ffe8d8ba703d",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 9,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "8ed28645-6c71-4aa1-b111-dfa5f1fe8c51",
-      "created_at": "2026-10-13T19:12:03.403Z"
-    },
-    {
-      "id": "b575ea78-d520-4b3e-96dc-d0ded417946f",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 10,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "ad113805-84b5-45d6-9e27-b62dd5dede4a",
-      "created_at": "2026-10-13T19:12:03.702Z"
-    },
-    {
-      "id": "54bd2e50-4566-4f30-86d4-ceecfff9657a",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "match_number": 11,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "31c72189-b62c-4662-84b5-1da7f48f78ea",
-      "created_at": "2026-10-13T19:12:03.954Z"
-    },
-    {
-      "id": "99fab505-24a0-4ebd-931b-69115a468d44",
-      "session_id": "a4e6cd17-d746-4e20-a7c1-794bdb64160c",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "2dea614e-fc96-419a-a896-84124176bbdf",
-      "created_at": "2026-10-14T07:00:11.174Z"
-    },
-    {
-      "id": "6178d2a0-2cf3-44ac-809b-10005ab1523f",
-      "session_id": "a4e6cd17-d746-4e20-a7c1-794bdb64160c",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": true,
-      "extra_time_price": 5,
-      "total_price": 20,
-      "client_idempotency_key": "8372539b-cb9d-490e-9c4e-c0c2e865c544",
-      "created_at": "2026-10-14T07:00:11.777Z"
-    },
-    {
-      "id": "e662fbe3-ee82-4826-a654-f71f2d12e4d6",
-      "session_id": "a4e6cd17-d746-4e20-a7c1-794bdb64160c",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "653c6088-58df-4422-ad2e-a688f24ad17c",
-      "created_at": "2026-10-14T07:00:12.283Z"
-    },
-    {
-      "id": "f97b792f-b1c4-4e5f-b0d5-e3d8b5de226d",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "d6c79d5c-60be-47ef-87e6-267e5a5f6bb7",
-      "created_at": "2026-10-14T07:03:44.821Z"
-    },
-    {
-      "id": "554a1ec6-bd8d-4f05-b703-1ba34b75cabd",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "61a42028-eccb-4aa8-99b3-beee7216e425",
-      "created_at": "2026-10-14T07:09:56.379Z"
-    },
-    {
-      "id": "467e9a6e-d046-4768-b674-aa1f8e77b8ae",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "810880ae-b023-4529-a396-739ee30c61fa",
-      "created_at": "2026-10-14T07:09:59.611Z"
-    },
-    {
-      "id": "f93aaed6-1e47-4aca-9e9d-4e413af4d20a",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "9b0d6457-6e7b-4a50-9871-3ac2feca0d7e",
-      "created_at": "2026-10-14T07:10:11.009Z"
-    },
-    {
-      "id": "898b0346-f3aa-4b23-aad2-08524f8b97a6",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "24d66f59-2dff-476b-9148-da503b25d1cc",
-      "created_at": "2026-10-14T07:10:16.885Z"
-    },
-    {
-      "id": "e4a08b11-f42f-4e30-9d7b-fa578316f133",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 6,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "e965ef89-8585-4438-93be-70c07b228492",
-      "created_at": "2026-10-14T07:10:40.933Z"
-    },
-    {
-      "id": "c8b56f71-96bb-4421-83bc-a92731781e27",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 7,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "27f5e074-1088-48de-bafd-41ca56cc98cd",
-      "created_at": "2026-10-14T07:10:51.280Z"
-    },
-    {
-      "id": "0191a82f-9363-4734-a5ae-874ee745d882",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "match_number": 8,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "43f4f11e-cea3-4f61-8667-7df3e504aacb",
-      "created_at": "2026-10-14T07:11:06.032Z"
-    },
-    {
-      "id": "00b06dd6-7677-46e2-95db-f846d9b10ebc",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": true,
-      "extra_time_price": 5,
-      "total_price": 20,
-      "client_idempotency_key": "a908e1b5-4a07-4804-bcb6-2c565f094672",
-      "created_at": "2026-10-14T07:16:48.409Z"
-    },
-    {
-      "id": "29076d00-dcaa-4c2f-a95c-aba9fe2b77cc",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "f2547b40-36d6-4d0f-b504-bf94b3a0018f",
-      "created_at": "2026-10-14T07:17:01.088Z"
-    },
-    {
-      "id": "9acf3930-7960-46b6-bf28-0e0628f0b2b3",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "ec2b72b0-251e-448b-b3a2-500b31e4285c",
-      "created_at": "2026-10-14T07:17:01.722Z"
-    },
-    {
-      "id": "f85af780-3e4d-4726-8a5e-ae8279458d90",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "match_number": 4,
-      "base_price": 15,
-      "extra_time": true,
-      "extra_time_price": 5,
-      "total_price": 20,
-      "client_idempotency_key": "7789107c-1588-40ee-ae60-ee2040fbf095",
-      "created_at": "2026-10-14T07:17:02.342Z"
-    },
-    {
-      "id": "5b90ff64-4d69-4cd9-a98f-3ec2c2122da3",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "match_number": 5,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "8f726599-92f0-48fc-8cf1-c592c1cc1209",
-      "created_at": "2026-10-14T07:17:02.923Z"
-    },
-    {
-      "id": "0e49b9f9-795e-4ea8-b5e6-cbae44b9feaf",
-      "session_id": "c6b18295-12c3-443e-af27-f4568c3c144a",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": true,
-      "extra_time_price": 5,
-      "total_price": 20,
-      "client_idempotency_key": "f5524751-cd1e-4405-a0b4-aca75a38317b",
-      "created_at": "2026-10-14T08:50:25.042Z"
-    },
-    {
-      "id": "0af0e959-fb5a-4e04-a00c-ae10c59af395",
-      "session_id": "c6b18295-12c3-443e-af27-f4568c3c144a",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "9b9bbe7e-ceb6-4ca1-a4bf-5c0c045d1c98",
-      "created_at": "2026-10-14T08:50:32.319Z"
-    },
-    {
-      "id": "41dbb218-8f92-4b01-90e5-4d8adbbeea87",
-      "session_id": "c6b18295-12c3-443e-af27-f4568c3c144a",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "b063ced0-b427-424c-8c55-939c5e0dbd21",
-      "created_at": "2026-10-14T08:50:32.855Z"
-    },
-    {
-      "id": "7ad7d44e-e2c5-470f-b180-e34ea2e94680",
-      "session_id": "e3ea62a3-827d-4a21-b1af-ec4c12aff6ea",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "39dfefb8-366e-4597-b01f-e9acda5aeeda",
-      "created_at": "2026-10-14T08:50:35.748Z"
-    },
-    {
-      "id": "e9cd7b28-05bf-43a2-8d5f-bc81c43227b0",
-      "session_id": "e3ea62a3-827d-4a21-b1af-ec4c12aff6ea",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "14a9cec2-dbb2-433b-8568-92349a7d9a4e",
-      "created_at": "2026-10-14T08:50:36.460Z"
-    },
-    {
-      "id": "b490f686-0b05-4233-b79c-7042802fac1e",
-      "session_id": "75594cd4-daff-4204-9ef1-75e6baa44476",
-      "match_number": 1,
-      "base_price": 15,
-      "extra_time": true,
-      "extra_time_price": 5,
-      "total_price": 20,
-      "client_idempotency_key": "c06b7bc0-e869-4fac-9229-a28e575892b9",
-      "created_at": "2026-10-14T08:50:38.417Z"
-    },
-    {
-      "id": "960e5486-3cd3-40da-a5b6-c4026565484a",
-      "session_id": "75594cd4-daff-4204-9ef1-75e6baa44476",
-      "match_number": 2,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "d66b70cc-8c3c-4360-bb22-ba36f84ad053",
-      "created_at": "2026-10-14T08:50:39.079Z"
-    },
-    {
-      "id": "c85211da-1867-41b5-b495-343ac097ab4c",
-      "session_id": "75594cd4-daff-4204-9ef1-75e6baa44476",
-      "match_number": 3,
-      "base_price": 15,
-      "extra_time": false,
-      "extra_time_price": 0,
-      "total_price": 15,
-      "client_idempotency_key": "3e31ae99-22ba-4b65-9d11-e94de08a235b",
-      "created_at": "2026-10-14T08:50:39.544Z"
+      "created_at": "2026-10-21T09:56:42.482Z"
     }
   ],
   "payments": [
     {
-      "id": "74630688-f1e7-4982-a3cf-35717ae509b0",
-      "session_id": "41a37f9e-c36d-43ba-a44b-214b31d8edf8",
+      "id": "4e90cfdc-7ef6-4345-8f18-ae65e99523b4",
+      "tenant_id": "t-original",
+      "session_id": "9039b50f-e606-4fd5-89b2-9efda4b75dbb",
       "method": "CASH",
       "amount": 50,
-      "created_at": "2026-10-13T14:03:15.859Z"
-    },
-    {
-      "id": "f5024d30-1f82-4bf3-91c3-5cfb1d560c31",
-      "session_id": "d9bc4666-2f15-4840-80b9-b268e00223d7",
-      "method": "CASH",
-      "amount": 75,
-      "created_at": "2026-10-13T19:06:38.580Z"
-    },
-    {
-      "id": "dfc7f1b7-fa7c-44cd-8826-a1f420885e46",
-      "session_id": "ebbc3536-8991-4e01-9dd1-5e9ddc5250ac",
-      "method": "CASH",
-      "amount": 75,
-      "created_at": "2026-10-13T19:06:42.031Z"
-    },
-    {
-      "id": "5b464289-866d-4828-ab9d-e2f450559e8c",
-      "session_id": "8553e2f8-02ce-4cef-ac09-230e93da3ff7",
-      "method": "CASH",
-      "amount": 75,
-      "created_at": "2026-10-13T19:06:44.874Z"
-    },
-    {
-      "id": "8ab6a063-0bc2-4aa7-b52d-1b3db17c572b",
-      "session_id": "47841c22-3474-4db1-a89c-d34b98d2bc23",
-      "method": "TELEBIRR",
-      "amount": 30,
-      "created_at": "2026-10-13T19:06:56.352Z"
-    },
-    {
-      "id": "e4214bf1-857d-4c3a-a2e3-8e2ef9438886",
-      "session_id": "73630fca-2a88-44cb-91c7-5bca0956f5cf",
-      "method": "CASH",
-      "amount": 165,
-      "created_at": "2026-10-13T19:12:10.237Z"
-    },
-    {
-      "id": "44a13322-31e4-44df-b74e-96c562c33185",
-      "session_id": "a4e6cd17-d746-4e20-a7c1-794bdb64160c",
-      "method": "TELEBIRR",
-      "amount": 50,
-      "created_at": "2026-10-14T07:01:04.124Z"
-    },
-    {
-      "id": "30e10821-e893-4917-a526-0ce14207f96c",
-      "session_id": "580417ce-e600-4342-87a5-cd3a933278d1",
-      "method": "CASH",
-      "amount": 120,
-      "created_at": "2026-10-14T07:13:37.953Z"
-    },
-    {
-      "id": "2a2abece-e2a4-4faf-aebf-3c92505e1fc9",
-      "session_id": "9c05a813-55dc-46dd-8ed6-86e4e3e51de1",
-      "method": "TELEBIRR",
-      "amount": 85,
-      "created_at": "2026-10-14T07:17:21.454Z"
-    },
-    {
-      "id": "5e4c86d1-dc2a-4b22-a235-2eb9d06130cd",
-      "session_id": "c6b18295-12c3-443e-af27-f4568c3c144a",
-      "method": "TELEBIRR",
-      "amount": 50,
-      "created_at": "2026-10-14T08:50:53.186Z"
+      "created_at": "2026-10-21T09:56:42.478Z"
     }
   ],
   "adjustments": []

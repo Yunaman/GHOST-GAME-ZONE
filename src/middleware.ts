@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { validateSessionToken } from '@/lib/auth';
+import { parseAndVerifySignedToken } from '@/lib/auth-token';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,17 +20,31 @@ export function middleware(request: NextRequest) {
   }
 
   const sessionCookie = request.cookies.get('ghost_session');
-  const isAuthenticated = sessionCookie?.value && validateSessionToken(sessionCookie.value);
+  const sessionToken = sessionCookie?.value || '';
+  const payload = parseAndVerifySignedToken(sessionToken);
+  const isAuthenticated = Boolean(payload && payload.account_status === 'ACTIVE');
+  const isOwner = Boolean(payload && payload.role === 'OWNER');
 
-  // If on login page and already authenticated -> redirect to floor '/'
+  // If on login page and already authenticated
   if (pathname === '/login') {
     if (isAuthenticated) {
+      if (isOwner) {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      }
       return NextResponse.redirect(new URL('/', request.url));
     }
     return NextResponse.next();
   }
 
-  // Protect all application routes ('/', '/history', '/reports', '/settings')
+  // Protect owner admin route '/admin'
+  if (pathname.startsWith('/admin')) {
+    if (!isAuthenticated || !isOwner) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Protect all customer application routes ('/', '/history', '/reports', '/settings')
   if (!isAuthenticated) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
@@ -43,6 +57,7 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/admin/:path*',
     '/history/:path*',
     '/reports/:path*',
     '/settings/:path*',
